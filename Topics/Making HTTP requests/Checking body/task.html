@@ -1,0 +1,8 @@
+<div class="step-text">
+<p></p>
+<p>There is a running server where you can create a new user. To do so, you need to use a POST HTTP request to the address <code class="language-go">http://127.0.0.1:8080/user</code>. To make a valid request to the server, you need to specify a not-empty name in the body of request, and the server will respond you with the id of the newly created user. Please, print the received id, and you'll solve the task!</p>
+<p></p><div class="alert alert-primary"> To make a post request with a body, you can use the example from the theory step:
+
+<pre><code class="language-go">http.Post(serverAddress, "text/plain", bytes.NewBufferString(name))</code></pre>
+<p></p></div><br><b>Sample Input:</b><br><pre><code class="language-no-highlight">100</code></pre><br><b>Sample Output:</b><br><pre><code class="language-no-highlight">100</code></pre><br><br><br><font color="gray">Memory limit: 256 MB</font><br><font color="gray">Time limit: 8 seconds</font><br><br>
+</div>

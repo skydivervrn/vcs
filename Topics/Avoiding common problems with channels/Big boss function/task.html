@@ -1,0 +1,7 @@
+<div class="step-text">
+<p></p>
+<p>You have just learned the theory about channels. But your mentor Bob says that the most important thing is practice!</p>
+<p>So he created a program template. It should send random length array of numbers to the channel, then print it in the receiver, close the channel and exit.</p>
+<p>Your task in this program is to add a function that will <strong>create</strong> a channel, <strong>return</strong> a <strong>read-only</strong> channel to the <code class="java">main</code> program, <strong>send</strong> data to it and then <strong>close</strong> it.</p>
+<p></p><div class="alert alert-primary"> This task uses functions <code class="java">randomizer()</code> and <code class="java">isReceiver()</code>. You don't need to know how they work internally. <code class="java">randomizer()</code> creates a slice of <code class="java">int</code> of a given <code class="java">length</code>. <code class="java">isReceiver()</code> checks the type of the returned channel and throws an error if it's not read-only. </div><br><b>Sample Input:</b><br><pre><code class="language-no-highlight">6</code></pre><br><b>Sample Output:</b><br><pre><code class="language-no-highlight">052443</code></pre><br><br><br><font color="gray">Memory limit: 256 MB</font><br><font color="gray">Time limit: 8 seconds</font><br><br>
+</div>

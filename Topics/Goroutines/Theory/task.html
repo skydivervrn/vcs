@@ -1,0 +1,176 @@
+<div class="step-text">
+<p>You already know sequential, parallel, and concurrent execution of programs. So how do you put this into practice? Go provides goroutines; a simple and efficient way to do your calculations at the same time. Let's see what they are and how to work with them!</p><h5 id="what-is-a-goroutine">What is a goroutine?</h5><p>Simply put, a <strong>goroutine</strong> is a <em>lightweight thread</em> managed by the Go runtime that allows functions to run <strong>concurrently</strong> with others, sharing the same address space. To understand why goroutines are so fast, you need to consider how they differ from traditional operating system threads.</p><p>In a multiprocessor environment, the creation and maintenance of a process are highly dependent on the operating system. OS <strong>threads</strong> (smallest processing unit) are lighter than <strong>processes</strong> (an abstraction that describes a running program). But, due to resource sharing, they require a large stack size – almost 1MB. Also, switching them requires an execution context switch. Because of this, the cost of maintaining a process or thread is quite high. This sometimes greatly degrades the performance of the application, even if the threads are designated as lightweight.</p><p>Goroutines have the advantage of being independent of the underlying operating system. Only <strong>Go Scheduler</strong> is responsible for managing them. As a result, the goroutine is less dependent on the platform it runs on. Goroutines also start with an initial stack capacity of just 2KB and support concurrency models. To save resources for switching OS threads, they are created when necessary and exist all the time the program is running. In the picture below, you can see the interaction diagram of goroutines and operating system threads.</p><p style="text-align: center;"><picture><source media="(max-width: 480px)" srcset="https://ucarecdn.com/13eab7e4-a4bc-487b-b21a-b8e37cdfb505/-/stretch/off/-/resize/480x/-/format/webp/ 1x,https://ucarecdn.com/13eab7e4-a4bc-487b-b21a-b8e37cdfb505/-/stretch/off/-/resize/960x/-/format/webp/ 2x,https://ucarecdn.com/13eab7e4-a4bc-487b-b21a-b8e37cdfb505/-/stretch/off/-/resize/1440x/-/format/webp/ 3x" type="image/webp"/><source media="(max-width: 800px)" srcset="https://ucarecdn.com/13eab7e4-a4bc-487b-b21a-b8e37cdfb505/-/stretch/off/-/resize/800x/-/format/webp/ 1x,https://ucarecdn.com/13eab7e4-a4bc-487b-b21a-b8e37cdfb505/-/stretch/off/-/resize/1600x/-/format/webp/ 2x,https://ucarecdn.com/13eab7e4-a4bc-487b-b21a-b8e37cdfb505/-/stretch/off/-/resize/2400x/-/format/webp/ 3x" type="image/webp"/><source srcset="https://ucarecdn.com/13eab7e4-a4bc-487b-b21a-b8e37cdfb505/-/stretch/off/-/resize/1100x/-/format/webp/ 1x,https://ucarecdn.com/13eab7e4-a4bc-487b-b21a-b8e37cdfb505/-/stretch/off/-/resize/2200x/-/format/webp/ 2x,https://ucarecdn.com/13eab7e4-a4bc-487b-b21a-b8e37cdfb505/-/stretch/off/-/resize/3000x/-/format/webp/ 3x" type="image/webp"/><img alt="Go Scheduler" height="401" src="https://ucarecdn.com/13eab7e4-a4bc-487b-b21a-b8e37cdfb505/" width="759"/></picture></p><p> </p><p></p><div class="alert alert-primary"><p>If you want, you can go deeper into learning how goroutines work on your own. This is interesting and will allow you to gain a deeper understanding of how and why they act in certain circumstances. But for further study of goroutines, a general understanding of the process is enough for you.</p></div><h5 id="simple-start-goroutine">Simple start goroutine</h5><p>And now let's move on to the practical side of using goroutines. It's very easy to run a function or method in Go as a goroutine. You just need to add the <code class="language-go">go</code> keyword before calling the function.</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func sayHello() {
+    fmt.Println("Hello, friend!")
+}
+
+func main() {
+    fmt.Println("Main is started")
+
+    go sayHello()
+
+    fmt.Println("Main is running")
+    time.Sleep(time.Millisecond)
+    fmt.Println("Main is finished")
+}
+
+// Output:
+// Main is started
+// Main is running
+// Hello, friend!
+// Main is finished
+</code></pre><p>As you can see, the code inside the <code class="language-go">sayHello</code> function was executed after the code in the <code class="language-go">main</code> function. This happened because the <code class="language-go">sayHello</code> function was run as a goroutine and ran concurrently with the <code class="language-go">main</code> function. So it was executed at the moment when the <code class="language-go">main</code> function was paused using <code class="language-go">time.Sleep</code>. Let's now take a closer look at the difference between sequential and concurrent flows.</p><div class="alert alert-warning"><p>Note that <code class="language-go">time.Sleep</code> does not guarantee that the goroutine will execute at that time. If the processor is busy with other calculations, the scheduler may delay the execution of <code class="language-go">sayHello</code> and it will not have time to execute. This notation simply makes the example easier to understand. In the following topics, you will learn how to ensure that goroutines run.</p></div><h5 id="sequential-and-concurrent-flows">Sequential and concurrent flows</h5><p>In the example below, you can see sequential execution. As expected, the execution time for normal functions was just over 3 seconds. They were executed in turn in the order of launch.</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func doWork(number int) {
+    fmt.Printf("\tjob %d started\n", number)
+    // there is a long work in the function, emulated by time.Sleep()
+    time.Sleep(1 * time.Second)
+    fmt.Printf("\tjob %d finished\n", number)
+}
+
+func main() {
+    t := time.Now()
+    fmt.Println("start")
+    for i := 0; i &lt; 3; i++ {
+        doWork(i)
+    }
+    fmt.Printf("finished in %s\n", time.Since(t))
+}
+
+// Output:
+// start
+//     job 0 started
+//     job 0 finished
+//     job 1 started
+//     job 1 finished
+//     job 2 started
+//     job 2 finished
+// finished in 3.001519284s</code></pre><div class="alert alert-primary"><p>In the <code class="language-go">doWork</code> function, we emulate some kind of long-term work using the <code class="language-go">Sleep</code> function from the <code class="language-go">time</code> package.</p></div><p>Now, look at the result of concurrent execution of the same code.</p><pre><code class="language-go">// the same setup
+
+func main() {
+    t := time.Now()
+    fmt.Println("start")
+    for i := 0; i &lt; 3; i++ {
+        go doWork(i)
+    }
+    fmt.Printf("finished in %s\n", time.Since(t))
+    time.Sleep(time.Second + time.Millisecond)
+    fmt.Printf("main finished in %s\n", time.Since(t))
+}
+
+// Output:
+// start
+// finished in 26.243µs
+//     job 2 started
+//     job 0 started
+//     job 1 started
+//     job 1 finished
+//     job 2 finished
+//     job 0 finished
+// main finished in 1.001452394s</code></pre><p>You may notice that the <code class="language-go">main</code> function now took a little over 1 second to complete. However, all the workers worked and displayed a completion message. Also, the loop in the <code class="language-go">main</code> ended before the workers started printing. This looks like a paradox because functions run in a loop. This happens because the goroutines do not stop the execution of the program code, they run with it at the same time. Thus, the main function simply started all the goroutines and continued its execution without waiting for them.</p><p>Also, you probably noticed that the functions launched as goroutines were not executed in the order they were started. This is another important feature of goroutines – the order in which they run is not guaranteed. There are special primitives in Go for orchestrating the execution of goroutines. However, this is a large piece of knowledge, and you will study them in the following topics.</p><p>Try running this program on your own and playing with the number of iterations in a regular call to the <code class="language-go">doWork</code> function versus calling it as a goroutine via the <code class="language-go">go doWork(i)</code> syntax. Also, try commenting out the Sleep call in the main function or setting the delay time to less than 1 second.</p><p>The result may surprise you, but you may not receive any messages at all from the <code class="language-go">doWork</code> functions called as goroutines. You already know that this is a feature of executing goroutines. However, there is one more moment. When the <code class="language-go">main</code> function completes its work, all goroutines called in this function are also completed. They may have time to start running, or they may not have time. If you put a minimum delay in the <code class="language-go">main</code> function or run more goroutines, then the scheduler will have time to start executing some of them.</p><h5 id="anonymous-goroutine">Anonymous goroutine</h5><p>Imagine a situation: you need to perform some lengthy operation in the code, the result of which you do not use further, or it will not be needed soon. Maybe, create a function for this and call it as a goroutine? Architecturally, this would not be entirely correct. In addition, it can be just a couple of lines, and you use the function in only one place.</p><p>Go anonymous functions come to the rescue. Yes, they can also be run as a goroutine and it's as easy as regular functions!</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    fmt.Println("main started")
+	
+    go func(number int) {
+        fmt.Printf("\tjob %d started\n", number)
+        time.Sleep(1 * time.Second)
+        fmt.Printf("\tjob %d finished\n", number)
+    }(10)
+    fmt.Println("goroutine started")
+
+    time.Sleep(time.Second + time.Millisecond)
+    fmt.Println("main finished")
+}
+
+// Output:
+// main started
+// goroutine started
+//     job 10 started
+//     job 10 finished
+// main finished</code></pre><p>But what if you use this logic in several places within the same function? In such a case, you can create a named inline function and call it as a goroutine.</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    fmt.Println("main started")
+
+    internalWork := func(number int) {
+        fmt.Printf("\tjob %d started\n", number)
+        time.Sleep(1 * time.Second)
+        fmt.Printf("\tjob %d finished\n", number)
+    }
+    go internalWork(11)
+    fmt.Println("goroutine 11 started")
+    time.Sleep(time.Millisecond)
+
+    go internalWork(12)
+    fmt.Println("goroutine 12 started")
+    time.Sleep(time.Millisecond)
+	
+    time.Sleep(time.Second + time.Millisecond)
+    fmt.Println("main finished")
+}
+
+// Output:
+// main started
+// goroutine 11 started
+//     job 11 started
+// goroutine 12 started
+//     job 12 started
+//     job 11 finished
+//     job 12 finished
+// main finished
+</code></pre><h5 id="returned-data">Returned data</h5><p>You may have noticed that in all the examples above, the goroutines only take some values as arguments but do not return anything. But often you need to get the result of the function execution and do something with it further.</p><p>You already know how to return a value from a normal function. But, if you try to do the same with a goroutine, you will get a compilation error <code class="language-go">expression in go must be function call</code> (or the IDE will show an error if you use it).</p><p style="text-align: center;"><picture><source media="(max-width: 480px)" srcset="https://ucarecdn.com/edb8911c-df2c-4f3f-9e86-b3bf3749bc2d/-/stretch/off/-/resize/480x/-/format/webp/ 1x,https://ucarecdn.com/edb8911c-df2c-4f3f-9e86-b3bf3749bc2d/-/stretch/off/-/resize/960x/-/format/webp/ 2x,https://ucarecdn.com/edb8911c-df2c-4f3f-9e86-b3bf3749bc2d/-/stretch/off/-/resize/1440x/-/format/webp/ 3x" type="image/webp"/><source media="(max-width: 800px)" srcset="https://ucarecdn.com/edb8911c-df2c-4f3f-9e86-b3bf3749bc2d/-/stretch/off/-/resize/800x/-/format/webp/ 1x,https://ucarecdn.com/edb8911c-df2c-4f3f-9e86-b3bf3749bc2d/-/stretch/off/-/resize/1600x/-/format/webp/ 2x,https://ucarecdn.com/edb8911c-df2c-4f3f-9e86-b3bf3749bc2d/-/stretch/off/-/resize/2400x/-/format/webp/ 3x" type="image/webp"/><source srcset="https://ucarecdn.com/edb8911c-df2c-4f3f-9e86-b3bf3749bc2d/-/stretch/off/-/resize/1100x/-/format/webp/ 1x,https://ucarecdn.com/edb8911c-df2c-4f3f-9e86-b3bf3749bc2d/-/stretch/off/-/resize/2200x/-/format/webp/ 2x,https://ucarecdn.com/edb8911c-df2c-4f3f-9e86-b3bf3749bc2d/-/stretch/off/-/resize/3000x/-/format/webp/ 3x" type="image/webp"/><img alt="IDE shows an error" height="122" src="https://ucarecdn.com/edb8911c-df2c-4f3f-9e86-b3bf3749bc2d/" width="523"/></picture></p><p>There are two ways to get a value from a function in such a case:</p><p>Wrap the function call in an anonymous goroutine. In such a case, you can use the return value within the current scope. Also, you can declare a variable beforehand and return the value of the function to it. But be careful – if the goroutine does not have time to execute, you will get the value that was given to the variable earlier.</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func numberQuad(i int) int {
+    return i * i
+}
+
+func main() {
+    result := 1_000_000
+    go func() {
+        result = numberQuad(2)
+    }()
+    time.Sleep(time.Millisecond)
+    // Try to comment the line with time.Sleep
+    fmt.Println(result)
+}</code></pre><p>Use channels. <strong>Channels</strong> in Go are special primitives through which goroutines communicate. You will get to know them in detail in the following topics. In the code below, you can just see how they can be used.</p><pre><code class="language-go">package main
+
+import "fmt"
+
+func workWithChannel(i int, quad chan int) {
+    quad &lt;- i * i
+}
+
+func main() {
+    quad := make(chan int)
+    go workWithChannel(3, quad)
+    result := &lt;-quad
+    fmt.Println(result)
+}</code></pre><h5 id="conclusion">Conclusion</h5><p>In this topic, you got acquainted with goroutines and learned about their difference from OS threads.</p><p>You also learned:</p><ul><li><p>How you can execute code in Go concurrently and save time on long tasks</p></li><li><p>What are the ways to execute goroutines in Go</p></li><li><p>Got acquainted with how to return a value from a goroutine</p></li></ul><p>Now let's get down to practice! After all, only working with real tasks allows you to understand the features of programming well and avoid mistakes in the future.</p>
+</div>

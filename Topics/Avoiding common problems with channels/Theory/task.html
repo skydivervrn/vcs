@@ -1,0 +1,217 @@
+<div class="step-text">
+<p>You already know what channels are and can use them in your Go programs.</p><p>However, channels are objects that can be used concurrently. In this case, you may face typical errors for any concurrent program, such as deadlock. It's also important to know how channels work in corner cases so you don't get unexpected errors during program execution.</p><p>Let's look at some features of using channels!</p><h5 id="channel-directions">Channel directions</h5><p>So far, you've been using channels that can both send and receive data, known as bidirectional channels. But Go also allows you to create <strong>unidirectional</strong> channels. These are channels with a specific direction: either a channel that a goroutine can only use to <em>receive</em> data from or a channel to which a goroutine can only <em>send</em> data.</p><p>The unidirectional channel is also created using the <code class="language-go">make()</code> function, just like bidirectional channels, but with a specific arrow <code class="language-go">&lt;-</code> syntax to indicate its direction:</p><ul><li><p><code class="language-go">&lt;-chan datatype</code> — A channel that only <em>receives</em> data</p></li><li><p><code class="language-go">chan&lt;- datatype</code> — A channel that only <em>sends</em> data</p></li></ul><pre><code class="language-go">func main() {
+    receiveCh := make(&lt;-chan int)
+    sendCh := make(chan&lt;- int)
+
+    fmt.Printf("Type of receiver: [ %T ]\n", receiveCh)
+    fmt.Printf("Type of sender: [ %T ]", sendCh)
+}
+
+// Output:
+// Type of receiver: [ &lt;-chan int ]
+// Type of sender: [ chan&lt;- int ]</code></pre><p>But what is the point of using a unidirectional channel? This improves the type safety of the program and helps to make fewer mistakes. For example, using the <code class="language-go">&lt;-chan</code> channel to send data to it will result in a compilation error. Look at the example below.</p><pre><code class="language-go">func main() {
+    receiveCh := make(&lt;-chan int, 1)
+    sendCh := make(chan&lt;- int, 1)
+
+    receiveCh &lt;- 1
+
+    &lt;-sendCh
+}
+
+// Output:
+// invalid operation: cannot send to receive-only channel receiveCh (variable of type &lt;-chan int)
+// invalid operation: cannot receive from send-only channel sendCh (variable of type chan&lt;- int)</code></pre><p>How can you use directed channels? Initiate a directed channel immediately? Then how can you interact with it? To fully use directed channels, Go provides a simple syntax for converting a bidirectional channel to a unidirectional one.</p><pre><code class="language-go">func receiveLines(ch &lt;-chan string) {
+    for val := range ch {
+        fmt.Println(val)
+    }
+}
+
+func sendHello(ch chan&lt;- string) {
+    ch &lt;- "Hello"
+}
+
+func sendWorld(ch chan string) {
+    sendCh := (chan&lt;- string)(ch)
+    sendCh &lt;- "World!"
+}
+
+func main() {
+    ch := make(chan string)
+    go receiveLines(ch)
+
+    sendHello(ch)
+    sendWorld(ch)
+ 
+    close(ch)
+    runtime.Gosched()
+}
+
+// Output:
+// Hello
+// World!</code></pre><p>You may notice the syntax of the arguments to the <code class="language-go">receiveLines</code> and <code class="language-go">sendHello</code> functions; they explicitly specify the channel type. You will get a compilation error if you use the channel for other purposes inside these functions.</p><p>It is also possible to create a new channel based on a bidirectional type with an explicit cast, as in the <code class="language-go">sendWorld</code> function. But it is still preferable to set this value in the function arguments. This way, you can show yourself and other developers that the responsibility of this function is strictly defined.</p><p>But remember that you can convert a regular channel to a unidirectional channel, but you can’t do it back. In this case, you will get a compilation error. The same error will occur if you try to convert the sender to the receiver and vice versa.</p><pre><code class="language-go">package main
+
+func main() {
+    ch := make(chan struct{})
+    senderCh := (chan&lt;- struct{})(ch)
+    receiverCh := (&lt;-chan struct{})(ch)
+
+    _ = (chan struct{})(receiverCh)
+    _ = (chan struct{})(senderCh)
+    _ = (chan&lt;- struct{})(receiverCh)
+    _ = (&lt;-chan struct{})(senderCh)
+}
+
+// Output:
+// examples.go:8:22: cannot convert receiverCh (variable of type &lt;-chan struct{}) to type chan struct{}
+// examples.go:9:22: cannot convert senderCh (variable of type chan&lt;- struct{}) to type chan struct{}
+// examples.go:10:24: cannot convert receiverCh (variable of type &lt;-chan struct{}) to type chan&lt;- struct{}
+// examples.go:11:24: cannot convert senderCh (variable of type chan&lt;- struct{}) to type &lt;-chan struct{}</code></pre><div class="alert alert-warning"><p>Note that attempting to close a channel just to receive data <code class="language-go">chan&lt;-</code> will result in a <code class="language-go">panic</code>.</p></div><h5 id="gotchas-with-nil-channel">Gotchas with nil channel</h5><p>You already know that a channel created with the <code class="language-go">var</code> keyword is <code class="language-go">nil</code> and cannot be used to send and receive data. However, sometimes programs use a channel whose value is <code class="language-go">nil</code>. You will learn some options for this use in future topics.</p><p>To make it easier for you to understand them, you first need to study the behavior of the <code class="language-go">nil</code> channel. Look at the example below.</p><pre><code class="language-go">package main
+
+import (
+	"fmt"
+	"runtime"
+)
+
+func receiver(ch chan string) {
+    for val := range ch {
+        fmt.Print(val)
+    }
+}
+
+func main() {
+    var ch chan string
+    go receiver(ch)
+
+    ch &lt;- "Hello"
+    close(ch)
+    runtime.Gosched()
+}
+
+// Output
+// goroutine 1 [chan send (nil chan)]:
+// main.main()
+//     examples.go:18 +0x4a
+//
+// goroutine 18 [chan receive (nil chan)]:
+// main.receiver(0x0?)
+//     examples.go:9 +0x85
+// created by main.main
+//     examples.go:16 +0x3c</code></pre><p>You can see from the error message that both goroutines are blocked. This happens because sending and receiving data from the <code class="language-go">nil</code> channel is blocked forever. How and why can it be used? If you have a channel and, in some case, you need to stop to read from it till the program ends, you can make it <code class="language-go">nil</code>.</p><div class="alert alert-warning"><p>However, you must remember that attempting to <code class="language-go">close</code> the <code class="language-go">nil</code> channel will result in a <code class="language-go">panic</code>. Therefore, you need to watch this carefully.</p></div><h5 id="gotchas-with-close-channel-how-to-properly-close-a-channel">Gotchas with close channel, how to properly close a channel</h5><p>The next important point is the closing of the channel. How do closed channels behave, and why is it so essential to close them in the right place? Let's figure it out!</p><p>As you already know, when getting data from a closed channel, you will simply get the channel's data type default value and <code class="language-go">false</code> as the second return value (<code class="language-go">data, ok := &lt;-channel</code> ).</p><p>But an attempt to write data to a closed channel will cause a <code class="language-go">panic</code>. And that's bad. Not only will you lose the data, but you will somehow have to <code class="language-go">recover</code> after the <code class="language-go">panic</code>. The same is true with an attempt to close an already closed channel.</p><p>That is why it is recommended to use a single point of responsibility. A function that creates a channel sends the data through it, closes it after all data has been sent, and returns a read-only channel.</p><pre><code class="language-go">func sender(data []int) &lt;-chan int {
+    fmt.Println("[sender] make channel")
+    ch := make(chan int)
+
+    go func() {
+        defer func() {
+            fmt.Println("[sender] close channel")
+            close(ch)
+        }()
+        for _, item := range data {
+            ch &lt;- item
+        }
+        fmt.Println("[sender] all data sent to channel")
+    }()
+
+    fmt.Println("[sender] return &lt;-channel")
+    return ch
+}
+
+func receiver(name string, delay time.Duration, ch &lt;-chan int) {
+    for val := range ch {
+        fmt.Printf("[%6s] data = %d\n", name, val)
+        time.Sleep(delay * time.Millisecond)
+    }
+    fmt.Printf("[%6s] stopped\n", name)
+}
+
+func main() {
+    data := []int{1, 2, 3, 4, 5, 6}
+    ch := sender(data)
+
+    fmt.Println("[  main] receivers")
+    go receiver("first", 10, ch)
+    go receiver("second", 3, ch)
+
+    fmt.Println("[  main] waiting for execution")
+    time.Sleep(time.Second)
+}
+
+// Output:
+// [sender] make channel
+// [sender] return &lt;-channel
+// [  main] receivers
+// [  main] waiting for execution
+// [second] data = 1
+// [ first] data = 2
+// [second] data = 3
+// [second] data = 4
+// [second] data = 5
+// [ first] data = 6
+// [sender] all data sent to channel
+// [sender] close channel
+// [second] stopped
+// [ first] stopped</code></pre><p>And now, let's see how it works. You can run the program on your own and track how it works from the output in the terminal.</p><p>The <code class="language-go">firstReceiver</code> and <code class="language-go">secondReceiver</code> functions simulate the processing of data received from a channel. They work at different speeds, so they manage to receive and process different amounts of data.</p><p>The <code class="language-go">sender</code> function is a combination! It creates a bidirectional channel and returns an unidirectional channel. Everything else is done in an anonymous goroutine that does not block all other actions. In it, data is sent to the channel, and when completed, the channel is closed.</p><p>This method avoids all the problems associated with closing the channel:</p><ul><li><p>Data cannot be sent to a closed channel.</p></li><li><p>The channel is guaranteed to be closed after all data has been sent.</p></li><li><p>The channel is guaranteed to be closed only once.</p></li><li><p>All other functions can only use the channel to receive data.</p></li></ul><h5 id="deadlocks-and-how-to-avoid-them"> Deadlocks and how to avoid them</h5><p>Receiving or sending data to the channel blocks the goroutine, and control is transferred to a free goroutine. What happens if there are no such goroutines? At this moment, a deadlock occurs, which will lead to an abnormal termination of the program.</p><p>Thus, <strong>deadlock</strong> is a state when no goroutine can continue to work due to a lock. This situation can also arise due to the incorrect use of the primitives of the <code class="language-go">sync</code> package. But you'll find out more about that later. Now let's look at the simplest deadlock situation:</p><pre><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+    ch := make(chan string)
+    ch &lt;- "Hello World!"
+    fmt.Println(&lt;-ch)
+}
+
+// Output:
+// fatal error: all goroutines are asleep - deadlock!
+//
+// goroutine 1 [chan send]:
+// main.main()
+//     examples.go:7 +0x37</code></pre><p>The program has both sending and receiving data from the channel. But still, it is blocked on the line with sending. When the program reaches it, the scheduler looks for another goroutine that can receive/send data to this channel. And in the example above, there is only one goroutine—<code class="language-go">main</code>.</p><p>Here are the main causes of deadlock with channels:</p><ul><li><p>The operation of sending/receiving data from an unbuffered channel blocks the execution of the program if there are no other goroutines ready to receive/send data to the channel.</p></li><li><p>When using a buffered channel, sending data is blocked when the buffer is full, and receiving data is blocked when the buffer is empty.</p></li><li><p>When receiving data from a channel using range for loop, if the channel is not closed after all values have been sent to it.</p></li></ul><p>So, how do you avoid being blocked?</p><p>The basis of using channels is working with data in different goroutines. Therefore, the main way to avoid blocking is to send and receive data from the channel in different goroutines. You have already done so many times, and now you know why.</p><pre><code class="language-go">func receiver(ch chan string) {
+  fmt.Println(&lt;-ch)
+}
+
+func main() {
+  ch := make(chan string)
+  go receiver(ch)
+
+  ch &lt;- "Hello World!"
+
+  // this instruction transfers control to other goroutine
+  // it's needed to receiver will be able to finish receiving
+  runtime.Gosched()
+}
+
+// Output:
+// Hello World!</code></pre><div class="alert alert-primary"><p>Note that the goroutine <code class="language-go">receiver</code> must be launched before the first send to the channel. You can also first launch the sender in the goroutine and then read the data from the channel.</p></div><p>Another way is to use a buffered channel with a buffer size greater than or equal to the number of data sent to the channel. In the example below, if you first send two values to the channel, and then receive data from it, blocking will happen again.</p><pre><code class="language-go">func main() {
+    ch := make(chan string, 1)
+
+    ch &lt;- "Hello World!"
+    //ch &lt;- "Not every day"
+    fmt.Println(&lt;-ch)
+}</code></pre><p>You can also receive data from a channel with a <code class="language-go">for range</code> loop. This allows you not to keep track of the number of sendings to the channel.</p><pre><code class="language-go">func receiver(ch chan string) {
+    for val := range ch {
+        fmt.Print(val)
+    }
+}
+
+func main() {
+    ch := make(chan string)
+    go receiver(ch)
+
+    ch &lt;- "Hello "
+    ch &lt;- "World"
+    close(ch)
+
+    runtime.Gosched()
+}</code></pre><p>You can also use a <code class="language-go">select</code> statement with an optional <code class="language-go">case</code> or <code class="language-go">default</code> branch. You will learn more about this operator in the following topics. For now, just try running your code.</p><pre><code class="language-go">func main() {
+    ch := make(chan string, 1)
+
+    select {
+    case &lt;-ch:
+        fmt.Println("Data received from channel")
+    default:
+        fmt.Println("Deadlock avoided")
+    }
+}
+
+// Output:
+// Deadlock avoided</code></pre><h5 id="conclusion">Conclusion</h5><p>In this topic, you dived deeper into the understanding of channels. And now you know:</p><ul><li><p>Some features of their use.</p></li><li><p>What is a deadlock.</p></li><li><p>How to avoid program crashes using channels.</p></li></ul><p>But what could be more valuable than testing your knowledge in practice? Forward!</p>
+</div>

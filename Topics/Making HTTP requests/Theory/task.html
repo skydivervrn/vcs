@@ -1,0 +1,101 @@
+<div class="step-text">
+<p>In this topic, we are going to talk about HTTP (Hypertext Transfer Protocol) requests in Go. Developers make HTTP requests all the time, and Golang has a built-in package <code class="language-go">net/http</code>. The HTTP package offers convenient functions like <code class="language-go">Get</code>, <code class="language-go">Post</code>, and <code class="language-go">Head</code> for common HTTP requests. We're going to explore the first two of them below.</p>
+<h5 id="get-requests">GET Requests</h5>
+<p>GET requests are used to receive data over the HTTP protocol. These requests don't modify the data but return the state of some resource or page. For example, we can use it to get information about users.</p>
+<p> We will make use of the <a href="https://httpbin.org/" rel="noopener ugc nofollow noreferrer" target="_blank">httpbin.org</a> site to help us inspect the HTTP requests. Have a look at the following piece of code:</p>
+<pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "io"
+    "log"
+    "net/http"
+)
+
+func main() {
+    response, err := http.Get("https://httpbin.org/get")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer response.Body.Close() // don't forget to close body
+
+    body, err := io.ReadAll(response.Body)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Println(string(body))
+    fmt.Println(response.Status)
+    fmt.Println(response.StatusCode)
+    if response.StatusCode &gt;= 200 &amp;&amp; response.StatusCode &lt; 300 {
+        fmt.Println("request is successful")
+    }
+}</code></pre>
+<p>In this example, call <code class="language-go">http.Get</code>, which gives us a response and the error value. If there occurred an error in making this request, the <code class="language-go">err</code> variable would be not <code class="language-go">nil</code>. We would log this error and quit.</p>
+<p>The <code class="language-go">response</code> variable contains the server reply, such as body, status, protocol version, etc. The <code class="language-go">Body</code> may contain any information at the discretion of the server. For example, JSON, XML, string, or other types. The <code class="language-go">Status</code> and <code class="language-go">StatusCode</code> are used to inform about the success or failure of the request. If the request code is in the form of 2**, it means that the server has been able to fulfill our request fully, and we've made the request correctly.</p>
+<p>The next step is deferring the execution of <code class="language-go">response.Body.Close()</code>, which is done at the end of the function. You should pay attention to this step because when you have the response body (it is not <code class="language-go">nil</code>), forgetting to close it can cause resource leaks in long-running programs.</p>
+<p>In continuation, we read the entirety of the response body and log it. The <code class="language-go">response.Body</code> implements the <code class="language-go">io.Reader</code> interface, allowing us to use the <code class="language-go">io.ReadAll</code> function. In our case, we do know that the target response is small in size. This gives us the confidence to read the full response in memory. However, since the response body is an <code class="language-go">io.Reader</code>, you could read the data chunk by chunk and process it as a stream of data.</p>
+<p>In our case, the body contains the JSON that was sent to us in response to our request. If we run this code, this is what we get as the output:</p>
+<pre><code class="language-json">{
+  "args": {}, 
+  "headers": {
+    "Accept-Encoding": "gzip", 
+    "Host": "httpbin.org", 
+    "User-Agent": "Go-http-client/2.0", 
+    "X-Amzn-Trace-Id": "Root=1-626eacd4-169ef1d3273fe4f723a374ac"
+  }, 
+  "origin": "146.120.71.159", 
+  "url": "https://httpbin.org/get"
+}
+
+200 OK
+200
+request is successful
+</code></pre>
+<h5 id="post-requests">POST Requests</h5>
+<p>The HTTP POST method is usually used to create or add a resource to the server. For example, to create a new user. The POST request differs from the GET one in that we can not only receive but also send the <code class="language-go">Body</code> in the POST request.</p>
+<pre><code class="language-go">package main
+
+import (
+    "bytes"
+    "fmt"
+    "io"
+    "log"
+    "net/http"
+)
+
+func main() {
+    response, err := http.Post("https://httpbin.org/post", "text/plain", bytes.NewBufferString("example"))
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer response.Body.Close()
+
+    body, err := io.ReadAll(response.Body)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println(string(body))
+}</code></pre>
+<p>In the above example, we're going to send a payload in the body of the request. We create and initialize a new buffer using a string, and then call <code class="language-go">http.Post</code>. This function takes the URL, the content type we are currently using ("text/plain", in our case), and <code class="language-go">io.Reader</code>. In our hands, we have a string that doesn't implement this interface, so we use <code class="language-go">bytes.NewBufferString</code>. It gives us a bytes buffer based on our string. Just like the last time, we log the server response to see if our request has been successful:</p>
+<pre><code class="language-json">{
+  "args": {}, 
+  "data": "example", 
+  "files": {}, 
+  "form": {}, 
+  "headers": {
+    "Accept-Encoding": "gzip", 
+    "Content-Length": "7", 
+    "Content-Type": "text/plain", 
+    "Host": "httpbin.org", 
+    "User-Agent": "Go-http-client/2.0", 
+    "X-Amzn-Trace-Id": "Root=1-628c43b6-228e76fe3f028bf022656098"
+  }, 
+  "json": null, 
+  "origin": "146.120.77.158", 
+  "url": "https://httpbin.org/post"
+}
+</code></pre>
+<h5 id="conclusion">Conclusion</h5>
+<p>Now that you know some basics about HTTP requests in Go, you can write simple GET and POST requests without any problem. Don't forget to close the request body!</p>
+</div>

@@ -1,0 +1,21 @@
+<div class="step-text">
+<p></p>
+<p>What ways to run a goroutine will work?</p>
+<p>a)</p>
+<pre><code class="language-go">go someWork()</code></pre>
+<p>b)</p>
+<pre><code class="language-go">func() go {
+    quad := numberQuad(2)
+    result := quad * 3
+    fmt.Println(result)
+}()
+</code></pre>
+<p>c)</p>
+<pre><code class="language-go">go quad := numberQuad(2)
+</code></pre>
+<p>d)</p>
+<pre><code class="language-go">work := func() {
+    go someWork()
+}
+go work()</code></pre>
+</div>

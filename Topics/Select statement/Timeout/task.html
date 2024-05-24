@@ -1,0 +1,22 @@
+<div class="step-text">
+<p></p>
+<p>Write a Go program that starts a <code class="java">timer</code> and reads data from a channel (the data gets written from a concurrent process). If reading is not possible immediately, the program waits.</p>
+<p>However, once the reading is successful, the <code class="java">timer</code> is reset to <code class="java">1</code> second. If another read is successful within this time, the <code class="java">timer</code> restarts. Finally, if the <code class="java">timer</code> finishes and no data has been read, the program terminates and prints the message <code class="java">"exit"</code>.</p>
+<p>The algorithm for the task is as follows:</p>
+<ul>
+<li>
+<p>The program starts a <code class="java">timer</code> as soon as it begins.</p>
+</li>
+<li>
+<p>The read branch gets executed when data can be read from the channel. In this branch, you must print the <code class="java">data</code> and reset the <code class="java">timer</code>.</p>
+</li>
+<li>
+<p>If another read is successful within the timer's duration, the <code class="java">timer</code> resets again.</p>
+</li>
+<li>
+<p>If the <code class="java">timer</code> finishes and no more data can be read from the channel, the timer's branch is triggered, leading to program termination.</p>
+</li>
+</ul>
+<p>Remember that the program should print the message <code class="java">"exit"</code> upon terminating!</p>
+<p></p><div class="alert alert-primary">This problem uses the hidden <code class="java">check()</code> function to check your solution for this coding task.</div><br><br><font color="gray">Memory limit: 512 MB</font><br><font color="gray">Time limit: 15 seconds</font><br><br>
+</div>

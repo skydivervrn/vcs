@@ -1,0 +1,61 @@
+<div class="step-text">
+<p></p>
+<p>At the end of a working day, a tired programmer wrote test cases for simple calculator program code. Everything is fine with the <code class="language-go">func calc</code> code, but something is clearly wrong with the tests.</p>
+<p><em>code</em>:</p>
+<pre><code class="language-go">package simpleCalc
+
+func calc(a, b int, op string) (int, bool) {
+	switch op {
+	case "+":
+		return a + b, true
+	case "-":
+		return a - b, true
+	case "*":
+		return a * b, true
+	case "/":
+		if b == 0 {
+			return 0, false
+		}
+		return a / b, true
+	default:
+		return 0, false
+	}
+}</code></pre>
+<p><em>tests</em>:</p>
+<pre><code class="language-go">package simpleCalc
+
+import "testing"
+
+func TestMul(t *testing.T) {
+	expected := 20
+	got, ok := calc(4, 5, "*")
+	if got != expected || !ok {
+		t.Errorf("expected: %v, got: %v", expected, got)
+	}
+}
+
+func TestDiv(t *testing.T) {
+	expected := 7
+	got, ok := calc(49, 7, "/")
+	if got != expected || !ok {
+		t.Errorf("expected: %v, got: %v", expected, got)
+	}
+}
+
+func TestDivZero(t *testing.T) {
+	expected := 0
+	got, ok := calc(49, 0, "/")
+	if got != expected || !ok {
+		t.Errorf("expected: %v, got: %v", expected, got)
+	}
+}
+
+func TestDefault(t *testing.T) {
+	expected := 0
+	got, ok := calc(49, 7, "#")
+	if got != expected || !ok {
+		t.Errorf("expected: %v, got: %v", expected, got)
+	}
+}</code></pre>
+<p>Which test cases will fail?</p>
+</div>

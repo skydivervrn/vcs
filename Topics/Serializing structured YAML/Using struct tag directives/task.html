@@ -1,0 +1,31 @@
+<div class="step-text">
+<p></p><p>You are given the following structs declarations in a Go program:</p><pre><code class="language-go">type Engine struct {
+	Type  string
+	Power int   
+	Turbo bool
+}
+
+type Car struct {
+	Make   string
+	Model  string
+	Year   int 
+    Price  float32
+	Engine Engine
+}</code></pre><p>Your task is to serialize a <code class="language-go">Car</code> struct instance, for example:</p><pre><code class="language-go">engine := Engine{
+    Type: "Inline-4",
+    Power: 300,
+}
+
+car := Car{
+    Make: "Tesla",
+    Model: "model 3",
+    Year: 2022,
+    Engine: engine,
+    Price: 49999.99,
+}</code></pre><p>To produce the following YAML output in the format:</p><pre><code class="language-yaml">make: Tesla
+model: model3
+year: 2022
+engine_type: Inline-4
+max_horsepower: 300
+turbo: false</code></pre><p>Your only objective is to add the correct YAML struct tags to the <code class="language-go">Car</code> and <code class="language-go">Engine</code> struct fields to obtain the specific YAML format/output described above.</p><div class="alert alert-warning"><p><strong>Tip:</strong> Remember to use the correct struct tags to rename fields and directly embed nested struct fields into the parent structure with <code class="language-go">inline</code>. To exclude non-required fields from the output, use <code class="language-go">-</code> for complete omission and <code class="language-go">omitempty</code> for conditional exclusion based on the field's zero value.</p></div><br><b>Sample Input:</b><br><pre><code class="language-no-highlight">Tesla model3 2022 49999.99 Inline-4 300 false</code></pre><br><b>Sample Output:</b><br><pre><code class="language-no-highlight">make: Tesla<br>model: model3<br>year: 2022<br>engine_type: Inline-4<br>max_horsepower: 300<br>turbo: false</code></pre><br><br><br><font color="gray">Memory limit: 256 MB</font><br><font color="gray">Time limit: 8 seconds</font><br><br>
+</div>

@@ -1,0 +1,16 @@
+<div class="step-text">
+<p></p><p>Check the correct ways to return data from a goroutine.</p><p>a)</p><pre><code class="language-go">go quad := numberQuad(2)</code></pre><p>b)</p><pre><code class="language-go">var result int
+go func() {
+    quad := numberQuad(2)
+    result = quad * 3
+}()</code></pre><p>c)</p><pre><code class="language-go">var areas int
+quad := make(chan int)
+go workWithChannel(3, quad)
+result := &lt;-quad
+areas += result</code></pre><p>d)</p><pre><code class="language-go">var areas int
+go func() {
+    quad := numberQuad(2)
+    result := quad * 3
+}()
+areas += result</code></pre>
+</div>

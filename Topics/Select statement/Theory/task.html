@@ -1,0 +1,148 @@
+<div class="step-text">
+<p>You already know how channels work in Golang. Before this, you were processing information for just a single channel. Today, you will learn how to handle multiple channels in a single block.</p><h5 id="basic-usage">Basic usage</h5><p>Let's consider a simple example with read-write operations for two channels:</p><pre><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+    chan1 := make(chan int)
+    chan2 := make(chan int)
+
+    var data int
+    go func() {
+        for {
+            fmt.Scan(&amp;data)
+            // write
+            select {
+            case chan1 &lt;- data:
+            case chan2 &lt;- data:
+            }
+        }
+    }()
+
+    for range [3]struct{}{} {
+        // read
+        select {
+        case data := &lt;-chan1:
+            fmt.Println("Data from chan1:", data)
+        case data := &lt;-chan2:
+            fmt.Println("Data from chan2:", data)
+        }
+    }
+}
+
+// Input:
+// 200 403 505
+// Output:
+// Data from chan1: 200
+// Data from chan2: 403
+// Data from chan2: 505</code></pre><p>Be sure to try running the example above yourself. What did you see that was unusual? The most important thing is the <em>output order</em>, which may differ from what is shown in the example.</p><p>Let's figure out what happened. First, let's look at the goroutine that reads the data. It contains an infinite loop, which waits for input data on each iteration, followed by a <code class="language-go">select</code> statement that writes the data entered into <em>one of</em> the channels. After this goroutine, there is a loop with three iterations in which we read from <em>one of</em> the channels. In both cases, the phrase "<em>one of</em>" is not accidental. Here are some basic rules for using the <code class="language-go">select</code> operator when reading/writing channels:</p><ul><li><p>If multiple channels are ready for read/write operations, the <code class="language-go">select</code> statement will pseudo-randomly choose one of them to handle the operation.</p></li><li><p>If only one channel is ready for read/write operations, that channel will be selected.</p></li><li><p>If none of the channels are ready for read/write operations, the <code class="language-go">select</code> statement will either:</p><ul><li><p>Cause the current executing goroutine to block, waiting until at least one of the channels becomes ready for communication, or</p></li><li><p>Execute the <code class="language-go">default</code> branch if it is defined, allowing for a non-blocking operation.</p></li></ul></li></ul><h5 id="default-branch">Default branch</h5><p>Let's consider the following task. Suppose we have two employees, Jack and Rose, who work in the same department. Upon receiving a new task in the department, you need to assign an available employee to handle it. Here is a possible solution to this task:</p><pre><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+    JackTasks := make(chan int, 1)
+    RoseTasks := make(chan int, 1)
+
+    var taskID int
+
+    for {
+        fmt.Scan(&amp;taskID)
+
+        select {
+        case JackTasks &lt;- taskID:
+            fmt.Printf("The task (%d) is assigned to Jack\n", taskID)
+        case RoseTasks &lt;- taskID:
+            fmt.Printf("The task (%d) is assigned to Rose\n", taskID)
+        default:
+            fmt.Println("There are no available employees")
+            return
+        }
+    }
+}
+
+// Input:  32
+// Output: The task (32) is assigned to Jack
+// Input:  64
+// Output: The task (64) is assigned to Rose
+// Input:  128
+// Output: There are no available employees</code></pre><p>In this example, there are no channel read operations. On the third iteration of the loop, both channels will be unavailable for writing. The <code class="language-go">default</code> branch helps handle this case by preventing an error from occurring.</p><h5 id="timeout">Timeout</h5><p>In the following example, we will explore another use of the select statement when working with channels. As in the previous example, we receive the task number and assign an employee to complete it. But now, we want to track the progress of the task.</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    JackTasks := make(chan int, 1)
+
+    var taskID int
+    fmt.Scan(&amp;taskID)
+
+    JackTasks &lt;- taskID                     // assign the task to Jack
+    timer := time.NewTimer(time.Second * 3) // set time to complete the task
+    defer timer.Stop()
+
+    for {
+        select {
+        case &lt;-timer.C:
+            fmt.Printf("Jack has finished task (%d)", &lt;-JackTasks)
+            return
+        default:
+            fmt.Println("Jack is working")
+            time.Sleep(time.Second)
+        }
+    }
+}
+</code></pre><p>In the above example, the employee Jack has <code class="language-go">3</code> seconds to complete the task and track its progress. <code class="language-go">time.Timer</code> provides access to a channel that receives data when the specified time has elapsed. As long as there is no data in the <code class="language-go">time.Timer</code> channel, the <code class="language-go">default</code> branch of the <code class="language-go">select</code> statement will be executed (the <code class="language-go">time.Sleep</code> is used to reduce the output information). Once the <code class="language-go">time.Timer</code> channel becomes ready for reading, the corresponding select branch is executed, and the program exits.</p><p>It is important to understand that the <code class="language-go">select</code> statement does not block during the timer execution. The code inside the <code class="language-go">select</code> statement runs immediately once it is started.</p><h5 id="block-forever">Block forever</h5><p>Blocking the main goroutine is another, less obvious way to use the <code class="language-go">select</code> statement. Suppose you have launched a program that serves a couple of goroutines. However, if you don't block the <code class="language-go">main</code> goroutine, the program will exit:</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    go func() {
+        for {
+            fmt.Println("The task is executed every 2 seconds")
+            time.Sleep(2 * time.Second)
+        }
+    }()
+    go func() {
+        for {
+            fmt.Println("The task is executed every 3 seconds")
+            time.Sleep(3 * time.Second)
+        }
+    }()
+}</code></pre><p>The code from the above example will not output anything, as it terminates immediately. To prevent this, the <code class="language-go">main</code> function needs to be blocked. You may already know that an infinite loop <code class="language-go">for {}</code> blocks a goroutine. However, this method can lead to performance issues. Instead of blocking with an infinite loop, you can use a <code class="language-go">select</code> statement for blocking, like this:</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    go func() {
+        for {
+            fmt.Println("The task is executed every 2 seconds")
+            time.Sleep(2 * time.Second)
+        }
+    }()
+    go func() {
+        for {
+            fmt.Println("The task is executed every 3 seconds")
+            time.Sleep(3 * time.Second)
+        }
+    }()
+
+    select {}
+}
+
+// Output:
+// The task is executed every 3 seconds
+// The task is executed every 2 seconds
+// The task is executed every 2 seconds
+// The task is executed every 3 seconds
+// The task is executed every 2 seconds
+// ...
+</code></pre><h5 id="conclusion">Conclusion</h5><p>Today, you learned about the <code class="language-go">select</code> statement for working with channels. Let's summarize some key points:</p><ul><li><p>The <code class="language-go">select</code> statement can be used for reading/writing operations on channels.</p></li><li><p>The <code class="language-go">select</code> statement selects the operation that can be executed (if there are several such operations, one is selected randomly).</p></li><li><p>The operations defined in the <code class="language-go">select</code> statement are executed immediately (remember this if you need to combine the <code class="language-go">select</code> statement with time-based operations).</p></li><li><p>The <code class="language-go">select</code> statement can be used to block a goroutine (<code class="language-go">select {}</code>).</p></li></ul>
+</div>

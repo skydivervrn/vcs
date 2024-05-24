@@ -1,0 +1,12 @@
+<div class="step-text">
+<p></p>
+<p>Suppose you have a web server at <code class="java">http://127.0.0.1:8080/</code>, which has various endpoints:</p>
+<ul>
+<li><code class="java">http://127.0.0.1:8080/hello-world</code></li>
+<li><code class="java">http://127.0.0.1:8080/json</code></li>
+<li><code class="java">http://127.0.0.1:8080/wiki</code></li>
+</ul>
+<p>Your task is to create a function <code class="java">getContentType()</code> that takes an <code class="java">url</code> read from the input as an argument, makes a <code class="java">GET</code> request to the <code class="java">url</code> and returns a <code class="java">string</code> with the <code class="java">Content-Type</code> of the <code class="java">response</code>.</p>
+<p>To do this, you'll need to access the <a href="https://pkg.go.dev/net/http#Response:~:text=canonicalized%20(see%20CanonicalHeaderKey).-,Header,-Header%0A%0A%09//%20Body%20represents" rel="noopener noreferrer nofollow" target="_blank"><code class="java">Header</code></a> field within the <code class="java">response</code> struct, use the <code class="java">Get</code> method, and pass to it <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type" rel="noopener noreferrer nofollow" target="_blank"><code class="java">"Content-Type"</code></a> as an argument.</p>
+<p>For example, <code class="java">getContentType("https://127.0.0.1:8080/hello-world")</code> should return the following string: <code class="java"><samp>"text/plain; charset=utf-8</samp>"</code>.</p><br><b>Sample Input:</b><br><pre><code class="language-no-highlight">http://127.0.0.1:8080/hello-world</code></pre><br><b>Sample Output:</b><br><pre><code class="language-no-highlight">text/plain; charset=utf-8</code></pre><br><br><br><font color="gray">Memory limit: 256 MB</font><br><font color="gray">Time limit: 8 seconds</font><br><br>
+</div>

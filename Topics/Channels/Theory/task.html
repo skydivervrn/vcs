@@ -1,0 +1,168 @@
+<div class="step-text">
+<p>While learning about goroutines, you used <code class="language-go">time.Sleep</code> to wait for data from the goroutine. This approach is acceptable in some cases, but there are a couple of limitations:</p><ul><li><p>You can use the data from the goroutine to a very limited extent.</p></li><li><p>You need to make sure you allow enough time for the calculations.</p></li><li><p>There is no guarantee that the scheduler will run your goroutine in the allotted time.</p></li><li><p>You need to know the exact execution time of the subroutine so that you don't have to wait too long.</p></li></ul><p>But still, the question remains — what is the correct way for goroutines to exchange data with each other or return values? That's what channels are for in Go. In this topic, you'll learn about channels and how to work with them; let's go!</p><h5 id="what-is-a-channel-and-why-do-we-need-it">What is a channel, and why do we need it?</h5><p>A <strong>channel</strong> is a communication object through which you can send and receive values. They ensure that goroutines can communicate with each other. Technically, this is a pipeline (or pipe) from where data can be sent or received. That is, one goroutine can send data to the channel, and the other can receive the data through this channel.</p><p>Let's look at an example:</p><pre><code class="language-go">// doWork simulates a long computations with random execution times
+func doWork(i int, resCh chan int) {
+    fmt.Printf("  doWork %d started\n", i)
+    time.Sleep(time.Duration(rand.Int63n(2000)) * time.Millisecond)
+    resCh &lt;- i
+    fmt.Printf("    doWork %d finished\n", i)
+}
+
+func main() {
+    fmt.Println("main started")
+    resCh := make(chan int)
+    start := time.Now()
+
+    for i := 0; i &lt; 3; i++ {
+        fmt.Printf("main %d started\n", i)
+        go doWork(i, resCh)
+    }
+
+    for i := 0; i &lt; 3; i++ {
+        fmt.Printf("main %d finished in %.3f second\n", &lt;-resCh, time.Since(start).Seconds())
+    }
+    fmt.Println("main finished")
+}
+
+// Output:
+// main started
+// main 0 started
+// main 1 started
+// main 2 started
+//   doWork 2 started
+//   doWork 0 started
+//   doWork 1 started
+//     doWork 1 finished
+// main 1 finished in 0.780 second
+//     doWork 2 finished
+// main 2 finished in 1.705 second
+//     doWork 0 finished
+// main 0 finished in 1.915 second
+// main finished
+</code></pre><details><summary><strong>🔍 Click to view additional possible outputs of the above code</strong></summary><div><pre><code class="language-go">// Output 2:
+// main started
+// main 0 started
+// main 1 started
+// main 2 started
+//   doWork 0 started
+//   doWork 2 started
+//   doWork 1 started
+//     doWork 0 finished
+// main 0 finished in 0.898 second
+//     doWork 1 finished
+// main 1 finished in 1.483 second
+//     doWork 2 finished
+// main 2 finished in 1.904 second
+// main finished
+
+// Output 3:
+// main started
+// main 0 started
+// main 1 started
+// main 2 started
+//   doWork 1 started
+//   doWork 0 started
+//   doWork 2 started
+//     doWork 0 finished
+// main 0 finished in 0.423 second
+//     doWork 1 finished
+// main 1 finished in 0.471 second
+//     doWork 2 finished
+// main 2 finished in 1.603 second
+// main finished</code></pre></div></details><div class="alert alert-warning"><p>Be careful when changing the above code. There should not be more receive operations from the channel (second cycle) than sends to the channel (starting goroutines). Otherwise, you will get a fatal error. You will learn the reasons for this behavior later, but for now, use this rule.</p></div><p>Try running this code on your PC and play around with the number of calculations running. You will get the expected result: goroutines run and send data to the channel as they perform calculations. On the other side of the channel, <code class="language-go">main</code> receives the data. This way, you get data as it becomes available and end processing when the latest data arrives.</p><p>Each channel is capable of passing values of a specific type, which is called the <strong>channel element type</strong>. In the example above, an <code class="language-go">int</code> channel was used. However, the channel can be of any type. Look at an example of declaring a channel variable with other types:</p><pre><code class="language-go">var floatCh chan float64     // channel of float64
+var structCh chan struct{}   // channel of empty structs
+var readerCh chan io.Reader  // channel of io.Reader interfaces
+var chanCh chan chan int     // channel of channels ints
+var sliceCh chan []time.Time // channel of time.Time slices</code></pre><p>The channel can be any type of data available in Go. As you already know, a channel simply provides the ability to send data in one goroutine and receive it in another. However, the channel is a reference to a data structure. By copying it or passing it to a function as an argument, you will refer to the same structure.</p><h5 id="creating-buffered-and-unbuffered-channels">Creating buffered and unbuffered channels</h5><p>As with any reference data type in Go, declaring a channel with the <code class="language-go">var</code> keyword will create a <code class="language-go">nil</code> channel. You can pass it to a function, but sending to and receiving from it is not possible. How to create a working channel? You've probably already noticed that Go uses the <code class="language-go">make</code> keyword to do this.</p><pre><code class="language-go">floatCh := make(chan float64)
+sliceCh := make(chan []time.Time)</code></pre><p>A channel created with a simple call to <code class="language-go">make</code> is said to be <strong>unbuffered</strong>.</p><p>In the example above with the <code class="language-go">doWork</code> function, you might notice one thing. While there is no data on one side of the channel, the receiving loop stops and waits for them to arrive. Receiving and sending into an unbuffered channel blocks the goroutine's thread of execution. Execution continues when a goroutine on the other end of a channel performs the corresponding action — sending or receiving. After that, both goroutines continue to work. Thus, communication over an unbuffered channel results in synchronized read and write operations.</p><p>You have already seen how <code class="language-go">main</code> is waiting for writers to a channel. In the example below, you can see how <code class="language-go">main</code> is waiting for readers from a channel.</p><p>The <strong>buffered</strong> channel has a queue of data elements (FIFO). The queue size is set during channel creation as an optional argument in <code class="language-go">make</code>. A write operation to such a channel does not block the writing goroutine until the buffer is full. Let's look at the example below:</p><pre><code class="language-go">func chanReader(bufferedCh chan string) {
+    for i := 0; i &lt; 4; i++ {
+        fmt.Println(&lt;-bufferedCh)
+    }
+}
+
+func main() {
+    bufferedCh := make(chan string, 3)
+    fmt.Println("capacity =", cap(bufferedCh))
+    fmt.Println("length = ", len(bufferedCh))
+    go chanReader(bufferedCh)
+
+    for _, sym := range "ABCD" {
+        bufferedCh &lt;- string(sym)
+        fmt.Println("length = ", len(bufferedCh))
+    }
+}
+
+// Output:
+// capacity = 3
+// length =  0
+// length =  1
+// length =  2
+// length =  3
+// A
+// B
+// C
+// D
+// length =  0</code></pre><div class="alert alert-primary"><p>You may notice the two built-in functions: <code class="language-go">len</code> and <code class="language-go">cap</code>. <code class="language-go">cap</code> returns the size of the channel's buffer, and <code class="language-go">len</code> is the number of elements in the channel.</p></div><p>As you can see, the channel is initially filled with elements. Once it reaches its capacity limit, the sending operations block until there's space in the buffer, and the sending goroutine waits until there's room for more items. After filling the buffer, elements are sent and received in order; this buffered channel optimization ensures that send operations proceed as long as there's capacity. Finally, the receiving operation takes precedence if the buffer is full or no goroutines are sending.</p><p>The choice between buffered and unbuffered channels can affect the program's correct operation. Unbuffered channels provide "receive/send" synchronization guarantees. At the same time, buffered channels allow you to smooth out the difference in operations performance by different program parts. In this case, the larger the buffer size, the stronger the difference can be smoothed out. But remember a few things:</p><ul><li><p>If one of the parts of the program runs faster, then the channel will still be constantly filled. And you won't get constant waiting.</p></li><li><p>You will choose the buffer size based on the problem's conditions. Sometimes, a buffer of 1 is enough, and sometimes 1000.</p></li><li><p>You can increase the processing speed at some slow stages by adding handlers.</p></li></ul><p>Note that the instruction below will create a channel with a buffer of <code class="language-go">0</code>. This is the unbuffered channel.</p><pre><code class="language-go">strCh := make(chan string, 0)</code></pre><h5 id="reading-and-writing-from-channels">Reading and writing from channels</h5><p>You may have already noticed how to write or read data from a channel.</p><pre><code class="language-go">func main() {
+    intCh := make(chan int, 3) // buffered channel with capacity = 3
+    x := 2
+
+    intCh &lt;- 0   // sending data into a chanel
+    intCh &lt;- 1   // sending data into a chanel
+    intCh &lt;- x   // sending variable value into a channel
+
+    &lt;-intCh      // receiving data from channel without using result
+    y := &lt;-intCh // receiving data with assignment value into variable
+    y += &lt;-intCh // receiving data with using value in expression
+
+    fmt.Println(y)
+}
+
+// Output:
+// 3</code></pre><p>Channels also support receiving in a loop using the <code class="language-go">range</code> keyword.</p><pre><code class="language-go">func channelReader(strCh chan string) {
+    for sym := range strCh {
+        fmt.Print(sym)
+    }
+}
+
+func main() {
+    hello := "Hello World!"
+    strCh := make(chan string)
+    go channelReader(strCh)
+
+    for _, sym := range hello {
+        strCh &lt;- string(sym)
+    }
+    close(strCh)
+
+    // this instruction transfers control to other goroutine
+    // it's needed for channelReader to be able to finish reading
+    runtime.Gosched()
+}
+
+// Output:
+// Hello World!
+</code></pre><p>This way of receiving the data stream is preferred. It allows you not to be tied to the size of the incoming data but to receive them as they arrive. In this case, the receiving will end when the channel is closed.</p><h5 id="close-channels">Close channels</h5><p>The previous section mentioned closing a channel. How do you do this, and why should the channel be closed? After all, as you saw in this topic, closing the channel for the first time was used in the example above.</p><p>The <code class="language-go">close</code> keyword is used to close a channel:</p><pre><code class="language-go">close(channelName)</code></pre><p>Closing a channel sets a flag that no more values will be transmitted on this channel. After that, any attempts to send data into the channel will end in a panic. However, you can still receive data from a closed channel. In this case, you will first receive all the data that was sent to this channel. After that, you will get the zero value of the channel type.</p><p>As you might guess, in the example above, closing a channel was used to stop the <code class="language-go">range</code> cycle in the <code class="language-go">channelReader</code> function. It stops receiving data from the channel. However, you need to pay attention to:</p><ul><li><p>Closing an unbuffered channel will stop the <code class="language-go">range</code> loop immediately, even if you have goroutines waiting to send data into the channel</p></li><li><p>From the buffered channel, all the data sent to it before closing will first be received, only then the loop will stop</p></li></ul><p>In the case when you use range, you are guaranteed to receive only the data written to the channel. However, what if you don't know if the channel is closed or not? Go has a special syntax for this, and it is similar to checking a value in a map.</p><pre><code class="language-go">value, ok := &lt;- ch // ok informs that the channel is open (true) or closed (false)</code></pre><pre><code class="language-go">func main() {
+    timeCh := make(chan time.Time, 3)
+
+    for i := 0; i &lt; 3; i++ {
+        timeCh &lt;- time.Now()
+        time.Sleep(time.Second)
+    }
+    close(timeCh)
+
+    for i := 0; i &lt; 5; i++ {
+        if value, ok := &lt;-timeCh; ok {
+            fmt.Println(value.Format("15:04:05"), "open")
+        } else {
+            fmt.Println(value.Format("15:04:05"), "closed")
+        }
+    }
+}
+
+// Output:
+// 11:57:12 open
+// 11:57:13 open
+// 11:57:14 open
+// 00:00:00 closed
+// 00:00:00 closed
+</code></pre><div class="alert alert-primary"><p>Remember that in most cases, it's better to have one function where you make a channel, send data, and close it. However, this approach might not be necessary for smaller programs when you're sure there won't be any data sent to a channel that's already closed or that hasn't been created.</p></div><p>By closing the channel, you also tell the receiver goroutine that there will be no more data and that you can exit; this way, you avoid goroutine leaks, loop freezes, or fatal errors when trying to receive data from a channel that no longer sends data.</p><h5 id="conclusion">Conclusion</h5><p>Now you know enough about channels to start using them in your code:</p><ul><li><p>What are the channels, and how to work with them.</p></li><li><p>How to send and receive data from a channel.</p></li><li><p>Why and how to close channels.</p></li></ul><p>Now is the time to get down to practice!</p>
+</div>

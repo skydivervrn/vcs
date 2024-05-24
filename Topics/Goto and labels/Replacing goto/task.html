@@ -1,0 +1,73 @@
+<div class="step-text">
+<p></p>
+<p>The code below counts the sum of numbers from a range. Altogether, you need to find three sums: the sum of numbers divisible by three, the sum of numbers divisible by five, and the sum of all other numbers. The range is defined by two numbers that you get from standard input. The first number is the beginning of the range, and the second number is the end of it, both numbers included.</p>
+<p>The code below contains a <code class="language-go">goto</code> statement, and you need to rewrite it without using <code class="language-go">goto</code>.</p>
+<pre><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+    var numberRange, end, sum3, sum5, other int
+    fmt.Scan(&amp;numberRange, &amp;end)
+
+StartOfLoop:
+    switch {
+    case numberRange%3 == 0:
+        goto amount3
+    case numberRange%5 == 0:
+        goto amount5
+    default:
+        goto otherAmount
+    }
+
+amount3:
+    sum3 += numberRange
+    goto EndOfLoop
+
+amount5:
+    sum5 += numberRange
+    goto EndOfLoop
+
+otherAmount:
+    other += numberRange
+
+EndOfLoop:
+    numberRange++
+    if numberRange &lt;= end {
+        goto StartOfLoop
+    }
+
+    fmt.Println(sum3)
+    fmt.Println(sum5)
+    fmt.Println(other)
+}
+</code></pre>
+<p>In case of difficulties, just see the hint.</p>
+<p><b>Tip:</b> </p>
+<pre><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+    var numberRange, end, sum3, sum5, other int
+    fmt.Scan(&amp;numberRange, &amp;?)
+
+    for ? &lt;= end {
+        switch {
+        case numberRange%3 == 0:
+            sum3 += ?
+        case ? == 0:
+            ? += numberRange
+        default:
+            other += ?
+        }
+        numberRange++
+    }
+
+    fmt.Println(sum3)
+    fmt.Println(?)
+    fmt.Println(other)
+}
+</code></pre>
+<p> </p><br><b>Sample Input:</b><br><pre><code class="language-no-highlight">1 5<br></code></pre><br><b>Sample Output:</b><br><pre><code class="language-no-highlight">3<br>5<br>7<br></code></pre><br><br><br><font color="gray">Memory limit: 256 MB</font><br><font color="gray">Time limit: 8 seconds</font><br><br>
+</div>

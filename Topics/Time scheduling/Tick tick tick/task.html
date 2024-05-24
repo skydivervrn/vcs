@@ -1,0 +1,29 @@
+<div class="step-text">
+<p></p><p>Take a look at the Go program below, paying close attention to how the ticker <code class="language-go">tck</code> is used within the <code class="language-go">select</code> statement:</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    tck := time.NewTicker(500 * time.Millisecond)
+    done := make(chan bool)
+
+    go func() {
+        for {
+            select {
+            case &lt;-done:
+                return
+            case t := &lt;-tck.C:
+                fmt.Println("Ticking at", t)
+            }
+        }
+    }()
+
+    time.Sleep(1600 * time.Millisecond)
+    tck.Stop()
+    done &lt;- true
+    fmt.Println("Ticker stopped ticking")
+}</code></pre><p>Your task is to enter an <strong>integer number</strong> below indicating how many times the program will enter into the <code class="language-go">case t := &lt;-tck.C:</code> block before stopping.</p>
+</div>

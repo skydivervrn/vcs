@@ -1,0 +1,94 @@
+<div class="step-text">
+<p>Go (or Golang) is a statically typed programming language. Its robust type system is one of its key features, allowing developers to create <strong>custom types</strong> and <strong>type aliases</strong>.</p>
+<p>Custom types and type aliases provide ways to enhance code readability, improve maintainability, and express domain-specific concepts more clearly. In this topic, you'll dive into these concepts and learn about their practical use cases.</p>
+<h5 id="custom-types">Custom types</h5>
+<p>Custom types in Go allow developers to define new types based on existing ones or built-in primitive types. These new types come with their own set of methods and behaviors, enabling developers to encapsulate logic and enhance the clarity of their code.</p>
+<p>You can declare new types in Go using the following syntax, where <code class="language-go">type</code> is a keyword:</p>
+<pre><code class="language-go">type Temperature float64 // In degrees: 36.6 (can represent °C, °F, or K)
+type UUID string // Universally Unique Identifier: "550e8400-e29b-41d4-a716-446655440000"
+type ISBN string // International Standard Book Number: "978-3-16-148410-0"</code></pre>
+<h5 id="type-alias">Type alias</h5>
+<p>On the other hand, type aliases provide alternative names for existing types without creating a distinct new type. In short, a type alias is an alternate spelling for a type rather than a completely separate type.</p>
+<p>The syntax of alias declaration is similar to type definition. However, notice the use of the <code class="language-go">=</code> symbol to indicate that it's an alias and not a new distinct type:</p>
+<pre><code class="language-go">type intSlice = []int
+
+// a function represents an operation for two floats, e.g. addition or subtraction
+type float32OperationFunc = func(a, b float32) float32
+</code></pre>
+<p>Apart from being used as alternative names for existing types, type aliases were actually introduced in Go to support large-scale refactoring, allowing for gradual code repair when moving a type between packages. You can read more about the origin of type aliases in the <a href="https://go.googlesource.com/proposal/+/master/design/18130-type-alias.md" rel="noreferrer ugc nofollow noopener" target="_blank" title="‌">official proposal</a> document.</p>
+<h5 id="custom-types-vs-type-alias">Custom types vs. type alias</h5>
+<p>Both custom types and type aliases are based on some other type. There are, however, subtle differences in their usage.</p>
+<p><strong>Interchangeability</strong>: Custom types are distinct from the types they're based on. This means you can't directly interchange them without explicit conversion. For instance:</p>
+<pre><code class="language-go">temp := Temperature(25.5)
+f := float64(temp)
+</code></pre>
+<p>In contrast, you can use values of type aliases interchangeably with the original type without any type casting:</p>
+<pre><code class="language-go">var i intSlice
+i = intSlice{1,2,3,4,5}
+i = []int{1,2,3,4,5}</code></pre>
+<p><strong>Method definitions</strong>: Since type alias does not define a new type, you cannot declare methods for it. Custom types, on the other hand, can have methods associated with them. Here's an example with the Temperature custom type:</p>
+<pre><code class="language-go">func (t Temperature) CelsiusToFahrenheit() Temperature {
+    return Temperature(t*9/5 + 32)
+}
+</code></pre>
+<h5 id="versatility-of-custom-types">Versatility of custom types</h5>
+<p>Custom types in Go are incredibly flexible because they can use aspects of both primitive types and structures, offering developers a tool for creating expressive and organized code. Here's a closer look at how they combine these features:</p>
+<ul>
+<li>Type safety: custom types ensure type safety, just like basic types. They prevent you from inadvertently mixing different types, adding an extra layer of error prevention.</li>
+<li>Single value and methods: Custom types based on primitive types represent a single value but can also contain additional methods. For example, the <code class="language-go">Temperature</code> custom type defined as <code class="language-go">float64</code>, encapsulates a single floating-point value and provides a method to convert from Celsius to Fahrenheit degrees.</li>
+<li><em>Encapsulation</em>: custom types based on structures allow for encapsulation. You can encapsulate related data (in structure fields) and methods within a custom type, making your code more organized and readable.</li>
+</ul>
+<h5 id="practical-use-cases-of-custom-types">Practical use cases of custom types</h5>
+<ul>
+<li><em>Type aliases</em> improve naming clarity: when you want to provide more descriptive and expressive names for existing types without introducing new behavior.</li>
+<li><em>Custom types</em> and <strong>encapsulation</strong>: when you want to encapsulate specific behavior to a particular type. For example, you can create types <code class="language-go">Celsius</code> and <code class="language-go">Fahrenheit</code> and add a method to each type for conversion:</li>
+</ul>
+<pre><code class="language-go">type Celsius float64
+
+func (c Celsius) ToFahrenheit() Fahrenheit {
+    return Fahrenheit(c*9/5 + 32)
+}
+
+type Fahrenheit float64
+
+func (f Fahrenheit) ToCelsius() Celsius {
+    return Celsius((f - 32) * 5 / 9)
+}</code></pre>
+<ul>
+<li><em>Custom types</em> and <strong>domain modeling</strong>: when you want to model complex domain-specific concepts while building an application:</li>
+</ul>
+<pre><code class="language-go">type Money struct {
+    Amount   float64
+    Currency string
+}
+
+func (m Money) Add(other Money) Money {
+    return Money{
+        Amount:   m.Amount + other.Amount,
+        Currency: m.Currency,
+    }
+}</code></pre>
+<h5 id="single-field-struct-vs-custom-type">Single field struct vs. custom type</h5>
+<p>As you saw earlier, you can create a new type based on a primitive type or a structure. One of the advantages of using primitive-based custom type is that you can still use operators:</p>
+<pre><code class="language-go">type Temperature float64
+
+f1 := Temperature(312)
+f2 := Temperature(100)
+res := f2 - f1</code></pre>
+<p>However, in this case, you cannot extend the <code class="language-go">Temperature</code> type because it is based on a primitive type. To overcome this situation, you can define <code class="language-go">Temperature</code> as a struct with a single field <code class="language-go">Value</code> of type float64:</p>
+<pre><code class="language-go">type Temperature struct {
+    value float64
+}
+
+f1 := Temperature{312}
+f2 := Temperature{100}
+res := f2.value - f1.value</code></pre>
+<p>Given the above characteristics, here are some recommendations when deciding between a primitive-based custom type and a single-field struct:</p>
+<ul>
+<li><em>For simplicity and direct operations</em>: Use a primitive-based custom type like <code class="language-go">type Temperature float64</code> when you need straightforward data representations and anticipate frequent arithmetic or direct operations on the data.</li>
+<li><em>For future extensibility and additional fields</em>: Use a single-field struct like <code class="language-go">type Temperature struct{ value float64 }</code> if you foresee the possibility of adding more fields or behaviors in the future. While methods can be associated with both, only struct-based types allow for the inclusion of additional fields without significant refactoring.</li>
+</ul>
+<h5 id="conclusion">Conclusion</h5>
+<p>Custom types and type aliases in Go are essential tools that enable developers to create more expressive and organized code. While type aliases can help programmers enhance code readability, custom types go further by providing a way to model domains and contribute to type safety.</p>
+<p>Remember, whether you're creating a custom type to encapsulate behavior or using a type alias to improve naming clarity, leveraging these concepts can significantly contribute to the quality of your codebase.</p>
+</div>

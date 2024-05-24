@@ -1,0 +1,124 @@
+<div class="step-text">
+<p>Like any other programmer, you write code, and even if you are completely sure that your code works correctly, it may not be so: you need a proof. There are many ways to get it, but not all of them are reliable.</p><p>The easiest way to check the program code for correctness is to output the results to the terminal and see what works well and what not. Everyone has their own strategy: for example, you can utilize usual functions, such as <code class="language-go">fmt.Println(...)</code> or <code class="language-go">fmt.Printf(...)</code>. Besides, you will require the <code class="language-go">main</code> function, and sometimes the <code class="language-go">main</code> package to do this. All this works but isn't particularly convenient or too reliable. Hence, you need a mechanism to implement checks in a unified way. It shouldn't be complicated but rather structured and not add extra code to the executable file. Go has a <code class="language-go">testing</code> package that provides support for <strong>automated testing</strong> of your code. Further in this topic, you will learn how to use it.</p><h5 id="creating-a-simple-test">Creating a simple test</h5><p>Suppose you've written a useful function that needs to be tested against various inputs. Now you need to add one more function:</p><pre><code class="language-go">func TestName(*testing.T)</code></pre><p>For example:</p><pre><code class="language-go">func TestHello(t *testing.T)</code></pre><p>The prefix <code class="language-go">Test</code> tells the system that this is a test. The word <code class="language-go">Hello</code> identifies the test name for a specific function. In this case, <code class="language-go">Hello</code>. Both must start with a capital letter. The test identifier and the tested function name don't have to match, but it's good practice if they do. </p><p><code class="language-go">testing</code> is a standard Go package. <code class="language-go">testing.T</code> means testing type, and <code class="language-go">t</code> is the variable, through which the testing methods are available to you. You'll look at some of the testing methods later.</p><p>Let's write a function <code class="language-go">Hello</code> and test it. You can give the name <code class="language-go">greetings</code> to the package. Create a file with the name <em>hello.go</em> and put the function there. This is the code you will test.</p><p><em>hello.go:</em></p><pre><code class="language-go">package greetings
+
+func Hello(lang string) string {
+    switch lang {
+    case "fr":
+        return "bonjour"
+    case "it":
+        return "ciao"
+    default:
+        return "hello"
+    }
+}</code></pre><p>Now, create a test file <em>hello_test.go</em>. This is where you will write the test for the <code class="language-go">Hello</code> function.</p><div class="alert alert-primary"><p>Don't forget to import the "testing" package. </p></div><p><em>hello_test.go:</em></p><pre><code class="language-go">package greetings
+
+import "testing"
+
+func TestHello(t *testing.T) {
+    got := Hello("fr")
+    expected := "bonjour"
+    if got != expected {
+        t.Errorf("Hello(\"fr\") = %v, expected = %v", got, expected)
+    }
+
+    got = Hello("x")
+    expected = "hello"
+    if got != expected {
+        t.Errorf("Hello(\"x\") = %v, expected = %v", got, expected)
+    }
+
+    // example of a failed test:
+    // got = "holla"
+    // expected = "ciao"
+    // if got != expected {
+    //	t.Errorf("Hello(\"it\") = %v, expected = %v", got, expected)
+    // }
+}</code></pre><p>You call a function (<code class="language-go">Hello</code> in this case) and get something from it. Then you save it in the <code class="language-go">got</code> variable. Here you want to get something definite known to you in advance. For example, you expect the function to return "bonjour" for the "fr" input. During testing, you compare the expected result with the actual one. If something is wrong, you call <code class="language-go">t.Errorf(...)</code>. This method will report where something you didn't expect happened, and the testing will continue. If you need to stop testing, you should call another method: <code class="language-go">t.Fatalf(...)</code>.</p><p>The test is ready! It remains to understand how to run it and get results.</p><h5 id="running-a-test">Running a test</h5><p>Let's look at two ways to run tests: in the terminal and in the GoLand IDE.</p><p>To run tests in the terminal, type <code class="language-go">go test</code>:</p><pre><code class="language-go">&gt; go test
+PASS
+ok      hyperskillUnitTesting   0.594s</code></pre><p><code class="language-go">PASS</code> tells us that the test was successful. <code class="language-go">hyperskillUnitTesting</code> is the name of your module (set in the file <em>go.mod</em>). You can use any other name instead.</p><p>To run tests in GoLand, press the green button near the test function declaration:</p><p><picture><source media="(max-width: 480px)" srcset="https://ucarecdn.com/7c2d2a30-0bd0-473d-a956-d3067a5684c9/-/stretch/off/-/resize/480x/-/format/webp/ 1x,https://ucarecdn.com/7c2d2a30-0bd0-473d-a956-d3067a5684c9/-/stretch/off/-/resize/960x/-/format/webp/ 2x,https://ucarecdn.com/7c2d2a30-0bd0-473d-a956-d3067a5684c9/-/stretch/off/-/resize/1440x/-/format/webp/ 3x" type="image/webp"/><source media="(max-width: 800px)" srcset="https://ucarecdn.com/7c2d2a30-0bd0-473d-a956-d3067a5684c9/-/stretch/off/-/resize/800x/-/format/webp/ 1x,https://ucarecdn.com/7c2d2a30-0bd0-473d-a956-d3067a5684c9/-/stretch/off/-/resize/1600x/-/format/webp/ 2x,https://ucarecdn.com/7c2d2a30-0bd0-473d-a956-d3067a5684c9/-/stretch/off/-/resize/2400x/-/format/webp/ 3x" type="image/webp"/><source srcset="https://ucarecdn.com/7c2d2a30-0bd0-473d-a956-d3067a5684c9/-/stretch/off/-/resize/1100x/-/format/webp/ 1x,https://ucarecdn.com/7c2d2a30-0bd0-473d-a956-d3067a5684c9/-/stretch/off/-/resize/2200x/-/format/webp/ 2x,https://ucarecdn.com/7c2d2a30-0bd0-473d-a956-d3067a5684c9/-/stretch/off/-/resize/3000x/-/format/webp/ 3x" type="image/webp"/><img alt="function declaration" height="38" src="https://ucarecdn.com/7c2d2a30-0bd0-473d-a956-d3067a5684c9/" width="340"/></picture></p><pre><code class="language-go">=== RUN   TestHello
+--- PASS: TestHello (0.00s)
+PASS
+Process finished with the exit code 0</code></pre><p>The form of the output is different, but the meaning is the same.</p><p>If you uncomment the code above:</p><pre><code class="language-go">got = "holla"
+expected = "holla"
+if got != expected {
+    t.Errorf("Hello(\"it\") = %v, expected = %v", got, expected)
+}</code></pre><p>This is a specially prepared code with an incorrect outcome. You reinitialize the variable, but now with the wrong data (<code class="language-go">got = "holla"</code>).</p><p>Now, let's run the test in Terminal:</p><pre><code class="language-go">&gt; go test
+--- FAIL: TestHello (0.00s)
+    hello_test.go:23: Hello("it") = holla, expected = ciao
+FAIL
+exit status 1
+FAIL    hyperskillUnitTesting   0.814s</code></pre><p>The test will fail. The output also indicates the place in the code where the test has failed, as well as the result that you should have received, ideally: <code class="language-go">hello_test.go:23: Hello("it") = holla, expected = ciao</code>.</p><p>The same, now in GoLand:</p><pre><code class="language-go">=== RUN   TestHello
+    hello_test.go:23: Hello("it") = holla, expected = ciao
+--- FAIL: TestHello (0.00s)
+
+FAIL
+
+Process finished with the exit code 1</code></pre><h5 id="test-coverage">Test coverage</h5><p>Alright, the tests passed. How can you understand that you did everything you could and there were no untested code sections left? The first part of this question is more rhetorical, and the second can be answered quite easily: you have to check the coverage.</p><p><strong>Coverage</strong> is a metric showing how much of your code the tests cover.</p><p>To check the coverage of your code, type <code class="language-go">go test -cover</code> in Terminal:</p><pre><code class="language-go">&gt; go test -cover
+PASS
+coverage: 75.0% of statements
+ok      hyperskillUnitTesting   0.691s</code></pre><p><code class="language-go">Run -&gt; Run with Coverage</code> in GoLand:</p><p><picture><source media="(max-width: 480px)" srcset="https://ucarecdn.com/29f0b5bc-9846-4241-abf8-aed2827a54de/-/stretch/off/-/resize/480x/-/format/webp/ 1x,https://ucarecdn.com/29f0b5bc-9846-4241-abf8-aed2827a54de/-/stretch/off/-/resize/960x/-/format/webp/ 2x,https://ucarecdn.com/29f0b5bc-9846-4241-abf8-aed2827a54de/-/stretch/off/-/resize/1440x/-/format/webp/ 3x" type="image/webp"/><source media="(max-width: 800px)" srcset="https://ucarecdn.com/29f0b5bc-9846-4241-abf8-aed2827a54de/-/stretch/off/-/resize/800x/-/format/webp/ 1x,https://ucarecdn.com/29f0b5bc-9846-4241-abf8-aed2827a54de/-/stretch/off/-/resize/1600x/-/format/webp/ 2x,https://ucarecdn.com/29f0b5bc-9846-4241-abf8-aed2827a54de/-/stretch/off/-/resize/2400x/-/format/webp/ 3x" type="image/webp"/><source srcset="https://ucarecdn.com/29f0b5bc-9846-4241-abf8-aed2827a54de/-/stretch/off/-/resize/1100x/-/format/webp/ 1x,https://ucarecdn.com/29f0b5bc-9846-4241-abf8-aed2827a54de/-/stretch/off/-/resize/2200x/-/format/webp/ 2x,https://ucarecdn.com/29f0b5bc-9846-4241-abf8-aed2827a54de/-/stretch/off/-/resize/3000x/-/format/webp/ 3x" type="image/webp"/><img alt="Run with Coverage in GoLand" height="47" src="https://ucarecdn.com/29f0b5bc-9846-4241-abf8-aed2827a54de/" width="622"/></picture></p><p>You can see which part of the code the tests don't cover:</p><pre><code class="language-go">&gt; go test --coverprofile=c.out
+&gt; go tool cover --html=c.out</code></pre><p>After executing these commands, an <em>.html</em> file will be generated. This file shows coverage areas (not tracked, not covered, covered):</p><p><picture><source media="(max-width: 480px)" srcset="https://ucarecdn.com/0dfa1b8c-235f-40f1-b119-c0c18fc80cde/-/stretch/off/-/resize/480x/-/format/webp/ 1x,https://ucarecdn.com/0dfa1b8c-235f-40f1-b119-c0c18fc80cde/-/stretch/off/-/resize/960x/-/format/webp/ 2x,https://ucarecdn.com/0dfa1b8c-235f-40f1-b119-c0c18fc80cde/-/stretch/off/-/resize/1440x/-/format/webp/ 3x" type="image/webp"/><source media="(max-width: 800px)" srcset="https://ucarecdn.com/0dfa1b8c-235f-40f1-b119-c0c18fc80cde/-/stretch/off/-/resize/800x/-/format/webp/ 1x,https://ucarecdn.com/0dfa1b8c-235f-40f1-b119-c0c18fc80cde/-/stretch/off/-/resize/1600x/-/format/webp/ 2x,https://ucarecdn.com/0dfa1b8c-235f-40f1-b119-c0c18fc80cde/-/stretch/off/-/resize/2400x/-/format/webp/ 3x" type="image/webp"/><source srcset="https://ucarecdn.com/0dfa1b8c-235f-40f1-b119-c0c18fc80cde/-/stretch/off/-/resize/1100x/-/format/webp/ 1x,https://ucarecdn.com/0dfa1b8c-235f-40f1-b119-c0c18fc80cde/-/stretch/off/-/resize/2200x/-/format/webp/ 2x,https://ucarecdn.com/0dfa1b8c-235f-40f1-b119-c0c18fc80cde/-/stretch/off/-/resize/3000x/-/format/webp/ 3x" type="image/webp"/><img alt="coverage areas" height="277" src="https://ucarecdn.com/0dfa1b8c-235f-40f1-b119-c0c18fc80cde/" width="572"/></picture></p><p>Take notice that full coverage doesn't guarantee full verification. Coverage indicates that tests can reach and execute all code and all branches.</p><h5 id="error-testing">Error testing</h5><p>Let's write another function for the <code class="language-go">greetings</code> package. Here, you create your own error to inform the user about incorrectly entered input data. In this case – about the absence of any data. It is good practice to inform the users of your functions!</p><p><em>bye.go:</em></p><pre><code class="language-go">package greetings
+
+import (
+    "errors"
+    "fmt"
+)
+
+var ErrEmptyName = errors.New("empty name")
+
+func Bye(name string) (string, error) {
+    if len(name) == 0 {
+        return "", ErrEmptyName
+    }
+    return fmt.Sprintf("Bye-bye, %v", name), nil
+}</code></pre><p><em>bye_test.go:</em></p><pre><code class="language-go">package greetings
+
+import (
+    "fmt"
+    "testing"
+)
+
+func TestBye(t *testing.T) {
+    name := "Felix"
+    expected := "Bye-bye, Felix"
+    got, err := Bye(name)
+    if err != nil {
+        t.Errorf("Unexpected error: %s", err.Error())
+    }
+    if got != expect {
+        t.Errorf("Expected: %s, got: %s", expected, got)
+    }
+}</code></pre><p>If you run the tests in terminal (<code class="language-go">&gt; go test</code>), it will launch all the test functions in the package (<code class="language-go">TestHello</code> and <code class="language-go">TestBye</code>).</p><p>To launch only one test function, use the following syntax: <code class="language-go">&gt; go test -run TestBye</code>.</p><p>Since, in your case, the function also returns an error, you should handle it in order to cover the code by tests:</p><pre><code class="language-go">if err != nil {
+    t.Errorf("Unexpected error: %s", err.Error())
+}</code></pre><p>This is an unexpected error because the function shouldn't throw an error on the current data.</p><p>You can write another code to check for an expected error. Add the following lines to the end of the <code class="language-go">TestBye</code> function:</p><pre><code class="language-go">_, err = Bye("")
+if !errors.Is(err, ErrEmptyName) {
+    t.Errorf("Expected: %v, got: %v", ErrEmptyName, err)
+}</code></pre><p>With <code class="language-go">errors.Is</code>, you can check that the expected error is thrown.</p><p>Above are simple examples of creating and running tests. For each tested function, you created your own test file. You could also create a single file with two test functions. Running the tests would be the same as above.</p><h5 id="useful-tips">Useful tips</h5><p>When the test grows large, splitting it into test cases makes sense. Consider the <code class="language-go">TestHello(t *testing.T)</code>. Now you have one test, but it looks bulky. Here's what you can do:</p><pre><code class="language-go">package greetings
+
+import "testing"
+
+func TestHelloFrench(t *testing.T) {
+    got := Hello("fr")
+    expected := "bonjour"
+    if got != expected {
+        t.Errorf("Hello(\"fr\") = %v, expected = %v", got, expected)
+    }
+}
+
+func TestHelloDefault(t *testing.T) {
+    got := Hello("x")
+    expected = "hello"
+    if got != expected {
+        t.Errorf("Hello(\"x\") = %v, expected = %v", got, expected)
+    }
+}
+
+// TestHelloItalian has incorrect check and will fail during the test run
+func TestHelloItalian(t *testing.T) {
+    got := "holla"
+    expected = "ciao"
+    if got != expected {
+        t.Errorf("Hello(\"it\") = %v, expected = %v", got, expected)
+    }
+}</code></pre><p>Now the test is more readable!</p><div class="alert alert-primary"><p>It is good practice to start with <code class="language-go">testing</code> rather than with <code class="language-go">main</code>. The <code class="language-go">main</code> package and the <code class="language-go">main</code> function should be as thin as possible.</p></div><h5 id="conclusion">Conclusion</h5><p>You need to write tests to ensure your code is correct: it doesn't matter if you wrote the code yourself or used somebody else's code. The most basic thing you should start with is unit tests. You have some expectations from the code and want to check that the expectations match reality. To do this, you can write and run tests. Don't forget to take into account the boundary conditions. Besides, try to completely cover your code with tests to make it more robust.</p>
+</div>

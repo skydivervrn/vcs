@@ -1,0 +1,26 @@
+<div class="step-text">
+<p></p>
+<p>Below is a Go program that creates three data writing channels and uses a <code class="language-go">select</code> statement to write data to one of them. Analyze the code and determine in which channel the data will be written.</p>
+<pre><code class="language-go">package main
+
+import "fmt"
+
+func main() {
+    chan1 := make(chan int, 1)
+    chan2 := make(chan int, 1)
+    chan3 := make(chan int, 1)
+
+    select {
+    case chan1 &lt;- 1:
+        fmt.Println("The data is written to the first channel.")
+    case chan2 &lt;- 2:
+        fmt.Println("The data is written to the second channel.")
+    case chan3 &lt;- 3:
+        fmt.Println("The data is written to the third channel.")
+    }
+
+    close(chan1)
+    close(chan2)
+    close(chan3)
+}</code></pre>
+</div>

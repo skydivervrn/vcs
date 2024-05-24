@@ -1,0 +1,8 @@
+<div class="step-text">
+<p></p>
+<p>You get five integer numbers: <code class="language-go">year</code>, <code class="language-go">month</code>, <code class="language-go">day</code>, <code class="language-go">hour</code>, and <code class="language-go">minute</code>. Create a variable of the <code class="language-go">time.Time</code> type with these numbers and print them using the format below (use a two-digit format for single-digit numbers):</p>
+<p><code class="language-go">-* day | month | year *-\n   &lt; hour &gt;&lt; minute &gt;</code></p>
+<p></p><div class="alert alert-primary"> Remember what exact symbols the <code class="language-go">RFC3339</code> template provides. To solve this task, you need to replace the name of the time interval with the correct template mark: for example,  replace "year" with <code class="language-go">2006</code> and "hour" with <code class="language-go">15</code>:
+
+<p><code class="language-go">-* day | month | 2006 *-\n   &lt; 15 &gt;&lt; minute &gt;</code> </p></div><br><b>Sample Input:</b><br><pre><code class="language-no-highlight">1946 2 13 12 0<br></code></pre><br><b>Sample Output:</b><br><pre><code class="language-no-highlight">-* 13 | 02 | 1946 *-<br>   &lt; 12 &gt;&lt; 00 &gt;<br></code></pre><br><br><br><font color="gray">Memory limit: 256 MB</font><br><font color="gray">Time limit: 8 seconds</font><br><br>
+</div>

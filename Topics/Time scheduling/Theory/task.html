@@ -1,0 +1,105 @@
+<div class="step-text">
+<p>In Go, the <code class="language-go">time</code> package provides various functions and types to handle time-related operations and scheduling. Time scheduling is essential in many applications to control the execution of tasks at specific times, intervals, or after a certain duration. It allows developers to handle concurrency, synchronization, and coordination in their applications. Let's explore the common time scheduling features in Go.</p><h5 id="why-do-we-need-time-scheduling">Why do we need time scheduling?</h5><p>Time scheduling is crucial in several scenarios, such as:</p><ul><li><p>Synchronizing concurrent tasks: You may need to coordinate the execution of multiple goroutines or processes to ensure they occur in a particular order or at specific intervals.</p></li><li><p>Timeouts: You might want to enforce a maximum duration for an operation, after which it should be canceled or considered unsuccessful.</p></li><li><p>Periodic tasks: You need to execute some tasks repeatedly at fixed intervals or specific times.</p></li><li><p>Delaying execution: In some cases, you may need to pause the execution of code for a certain duration.</p></li></ul><p>Let's dive deeper into functions from the <code class="language-go">time</code> package that will be an assistant for the points above.</p><h5 id="timesleep">time.Sleep</h5><p>Imagine<strong> </strong>you have to pause your program for some time so that background processes are ready. For example, you are working on a traffic simulation, and the car traffic lights should wait for <code class="language-go">time.Second * 54</code> after the pedestrian traffic light starts showing green. <code class="language-go">time.Sleep</code> pauses the current execution and waits till the given time before continuing to work.</p><pre><code class="language-go">// Signature of time.Sleep
+func Sleep(d Duration)</code></pre><p>Essentially, the <code class="language-go">time.Sleep</code> function pauses the execution of a goroutine for a specified duration. It takes a <code class="language-go">time.Duration</code> argument, which represents the duration of sleep. After the specified duration, the goroutine resumes execution.</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    fmt.Println("Start")
+    time.Sleep(2 * time.Second) // Sleep for 2 seconds
+    fmt.Println("End")
+}</code></pre><p>Output:</p><pre><code class="language-go">Start 
+// ... 2-second delay
+End</code></pre><p></p><div class="alert alert-warning"><p>It's important to note that <code class="language-go">time.Sleep</code> is a blocking operation! At first glance, it may seem like the most obvious way to start synchronizing something. However, it's an anti-pattern writing production-ready code because it can cause harm to your applications. Use it carefully to avoid blocking the execution of other goroutines.</p></div><p></p><h5 id="timeafter">time.After</h5><p>Imaging you have to deal with the following problems:</p><ul><li><p>Schedule different tasks;</p></li><li><p>Trying to perform a timeout/event handling;</p></li><li><p>Rate Limiting certain operations;</p></li><li><p>Simulating Behavior;</p></li><li><p>Simulate an AI behavior when developing a game;</p></li><li><p>Dealing with IoT &amp; Sensors;</p></li><li><p>Other similar problems;</p></li></ul><p>How can you crush them all? For these and other scenarios and use cases <code class="language-go">time.After</code> can be incredibly useful: The key advantage of <code class="language-go">time.After</code> is its simplicity and ease of use. It returns a channel that will be ready after a specified duration, allowing you to leverage Go's handy <code class="language-go">select</code> statement to handle timing-related events effectively.</p><pre><code class="language-go">func After(d Duration) &lt;-chan Time</code></pre><p>Let's consider a simpler example. The <code class="language-go">performLongOperation</code> function is designed to take 3 seconds to complete (simulated using <code class="language-go">time.Sleep</code>). And you are going to run it as goroutine in <code class="language-go">main()</code></p><pre><code class="language-go">func performLongOperation(resultChan chan&lt;- string) {
+    // Simulate a long operation that takes 3 seconds.
+    time.Sleep(3 * time.Second)
+
+    // Send the result to the channel.
+    resultChan &lt;- "Operation completed successfully"
+}
+
+func main() {
+    resultChan := make(chan string)
+
+    // Start the long operation in a goroutine.
+    go performLongOperation(resultChan)
+
+// ...</code></pre><p>After that, put the <code class="language-go">select</code> statement that waits for one of two cases to occur:</p><ol><li><p>A response is received successfully from the <code class="language-go">resultChan</code>.</p></li><li><p>A timeout of 2 seconds occurs, indicated by the <code class="language-go">&lt;-time.After(2 * time.Second)</code> case.  </p></li></ol><pre><code class="language-go">// ...
+
+    // Use select to wait for the result or timeout.
+    select {
+    case result := &lt;-resultChan:
+        fmt.Println(result)
+    case &lt;-time.After(2 * time.Second):
+        fmt.Println("Operation timed out")
+    }
+}</code></pre><p>When the <code class="language-go">performLongOperation</code> function completes within the timeout (before 2 seconds elapse), the result will be received from the <code class="language-go">resultChan</code>, and the "Operation completed successfully" message will be printed. However, if the operation takes longer than the timeout (exceeds 2 seconds), the <code class="language-go">select</code> statement will choose the timeout case, and "Operation timed out" will be printed.</p><p>As you see, the <code class="language-go">time.After</code> function is commonly used for implementing timeouts or triggering actions after a specific delay. The common use case is to set a time limit on the execution of a goroutine and handle cases where the operation takes too long to complete. It's a simple way to enforce a deadline for time-consuming tasks and prevent them from blocking your program indefinitely.</p><h5 id="timetimer">time.Timer</h5><p>When implementing a reminder or notification service that sends scheduled messages or alerts at specific times, you can use the <code class="language-go">time.Timer</code> type. It represents a single event that will occur in the future. The timer provides a channel, <code class="language-go">C</code>, which receives a value when the timer expires.</p><pre><code class="language-go">type Timer struct {
+    C &lt;-chan Time
+    // contains filtered or unexported fields
+}</code></pre><p>You can create a <strong>Timer</strong> using the <code class="language-go">time.NewTimer</code> function and specify the duration after which the timer should fire. You can use this channel in a <code class="language-go">select</code> statement to perform specific actions when the timer expires. </p><pre><code class="language-go">func taskA() {
+    fmt.Println("Task A executed at", time.Now())
+}
+
+func taskB() {
+    fmt.Println("Task B executed at", time.Now())
+}
+
+func main() {
+    timerA := time.NewTimer(3 * time.Second)
+    timerB := time.NewTimer(5 * time.Second)
+
+    for {
+        select {
+        case &lt;-timerA.C:
+            taskA()
+            // Reset the timer for Task A to run again in 3 seconds.
+            timerA.Reset(3 * time.Second)
+
+        case &lt;-timerB.C:
+            taskB()
+            // Reset the timer for Task B to run again in 5 seconds.
+            timerB.Reset(5 * time.Second)
+        }
+    }
+}
+</code></pre><p>Note that you use the <code class="language-go">Reset</code> method. It allows you to reset the timer to a new duration. By doing so, you can reuse the same <code class="language-go">time.Timer</code> instance for scheduling the event multiple times.</p><p>In this example, <code class="language-go">taskA</code> will be executed every 3 seconds and <code class="language-go">taskB</code> will be executed every 5 seconds. When the <code class="language-go">timerA</code> or <code class="language-go">timerB</code> expires (reaches its specified duration), the corresponding task will be executed. After each task execution, you reset the respective timer to run again after its specified interval.</p><p>If you try to run this program, you'll see the output showing the execution of Task A every 3 seconds and Task B every 5 seconds, as the timers expire and trigger the specific actions in the <code class="language-go">select</code> statement.</p><p>Unlike <code class="language-go">time.Sleep()</code>, a <code class="language-go">time.Timer</code> can be stopped with the use of <code class="language-go">Stop()</code> method. In some scenarios, you want to be able to cancel a process, like if you download a file or if you are trying to connect. </p><p></p><div class="alert alert-primary"><p>You should always stop the timer, and it's a common practice to use the <code class="language-go">defer timer.Stop()</code> statement for this. But for learning purposes, you are now viewing it in a code flow.</p></div><p></p><pre><code class="language-go">func main() {
+    timer := time.NewTimer(time.Second)
+	
+    go func() {
+        &lt;-timer.C
+        fmt.Println("Timer expired")
+    }()
+	
+    stop := timer.Stop()
+    if stop {
+        fmt.Println("Timer stopped")
+    }
+}</code></pre><p>For a deeper understanding, you could walk through <a href="https://cs.opensource.google/go/go/+/refs/tags/go1.20.6:src/time/sleep.go;l=50" rel="noopener noreferrer nofollow" target="_blank">source code of sleep.go</a></p><h5 id="timeticker">time.Ticker</h5><p>The last but not least <code class="language-go">time.Ticker</code> type. It represents a ticker that ticks at regular intervals.</p><p>You can create a <strong>Ticker</strong> using the <code class="language-go">time.NewTicker</code> function, which takes the interval between ticks as a parameter. The ticker provides a channel, <code class="language-go">C</code>, that receives values at regular intervals. You can use this channel in a <code class="language-go">select</code> statement to perform actions periodically.</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    fmt.Println("Start")
+    ticker := time.NewTicker(1 * time.Second)
+
+    go func() {
+        for range ticker.C {
+            fmt.Println("Tick")
+        }
+    }()
+	
+    time.Sleep(5 * time.Second)
+    ticker.Stop()
+    fmt.Println("End")
+}</code></pre><p>Just like you do with the <code class="language-go">Timer</code>, you can stop the <code class="language-go">Ticker</code> using the <code class="language-go">Stop()</code> method, and the more idiomatic Go-way is to use the defer statement here as well.</p><pre><code class="language-go">// ...
+defer ticker.Stop()
+
+defer timer.Stop()
+// ...</code></pre><p>In real life, an example of using the <code class="language-go">time.Ticker</code> type would be a data streaming application from IoT devices. Consider an application that receives real-time data from sensors, IoT devices, or external APIs. To keep the data up-to-date and respond promptly to changes, you want to process the incoming data at regular intervals and take appropriate actions based on the updates.</p><h5 id="conclusion">Conclusion</h5><p>In this topic, you dived deeper into time scheduling in Go. It allows you to control the execution of tasks based on specific duration, intervals, or time points. The <code class="language-go">time.Sleep</code> function provides a simple way to pause execution, <code class="language-go">time.After</code> triggers a channel after a duration, <code class="language-go">time.Timer</code> fires an event in the future, and <code class="language-go">time.Ticker</code> repeatedly sends values at regular intervals. These features are useful for managing timeouts, scheduling periodic tasks, and coordinating concurrent operations in Go programs.</p>
+</div>

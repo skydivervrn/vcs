@@ -1,0 +1,287 @@
+<div class="step-text">
+<p>YAML is a human-readable data serialization format. It is used for writing configuration files and data exchange between languages with different data structures.</p><p>The <code class="language-shell">gopkg.in/yaml.v3</code> package is a YAML parsing and encoding library for the Go programming language. It provides functionality for working with YAML data, such as encoding Go data structures into YAML object and decoding YAML objects into the corresponding Go data structures.</p><p>In this topic, you will learn how to encode a <code class="language-shell">struct</code> to YAML format and how to decode a YAML object to a <code class="language-shell">struct</code> in Go using the package <code class="language-shell">gopkg.in/yaml.v3</code>. </p><h5 id="how-to-install-the-yaml-package">How to Install the YAML package</h5><p>To integrate YAML functionality into your Go project, you will need to initialize Go modules and install the <code class="language-shell">gopkg.in/yaml</code> package.</p><p>Let’s create a directory named <code class="language-shell">example-yaml</code> move into it, and then initialize Go modules:</p><pre><code class="language-shell">mkdir example-yaml &amp;&amp; cd example-yaml
+go mod init example-yaml</code></pre><p>Then, use the <code class="language-shell">go get</code> command to install the external package <code class="language-shell">gopkg.in/yaml.v3</code>:</p><pre><code class="language-shell">go get gopkg.in/yaml.v3</code></pre><p>Finally, create a <em>main.go</em> file, open it on your favorite code editor, and you’re ready to start!</p><h5 id="mapping-between-go-types-and-yaml-types">Mapping between Go Types and Yaml Types</h5><p>YAML supports various data types, which includes strings, numbers, booleans, arrays, and objects. When using the <a href="https://gopkg.in/yaml.v3" rel="noopener noreferrer nofollow" target="_blank">gopkg.in/yaml.v3</a> package in Go, it is important to understand the mapping between Go data types and YAML data types for encoding and decoding operations. The following table summarizes these mappings, showing how different Go types transform into YAML data types during encoding and vice versa during the decoding process:</p><table align="center" border="1" cellpadding="1" cellspacing="1"><tbody><tr><th><p style="text-align: center">Go type</p></th><th><p style="text-align: center">&lt;=&gt;</p></th><th><p style="text-align: center">YAML type</p></th></tr><tr><td><p style="text-align: center">bool</p></td><td><p style="text-align: center">&lt;=&gt;</p></td><td><p style="text-align: center">YAML boolean</p></td></tr><tr><td><p style="text-align: center">string</p></td><td><p style="text-align: center">&lt;=&gt;</p></td><td><p style="text-align: center">YAML string</p></td></tr><tr><td><p style="text-align: center">int*, uint*, float*</p></td><td><p style="text-align: center">&lt;=&gt;</p></td><td><p style="text-align: center">YAML number</p></td></tr><tr><td><p style="text-align: center">slice</p></td><td><p style="text-align: center">&lt;=&gt;</p></td><td><p style="text-align: center">YAML array</p></td></tr><tr><td><p style="text-align: center">struct, map</p></td><td><p style="text-align: center">&lt;=&gt;</p></td><td><p style="text-align: center">YAML object</p></td></tr></tbody></table><h5 id="serializing-a-struct-to-yaml">Serializing a struct to YAML</h5><p>Now that you have learned about the mapping between Go and YAML data types, let's move forward with a hands-on example. Suppose you want to serialize a simple struct <code class="language-shell">Movie</code>; to achieve this, you simply initialize its fields and then use the <code class="language-shell">yaml.Marshal()</code> function as follows:</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "log"
+    "time"
+
+    "gopkg.in/yaml.v3"
+)
+
+type Movie struct {
+    Title         string
+    Genres        []string
+    Year          int
+    movieLength   int32 // in minutes
+    Rating        float32
+    CreatedAt time.Time
+}
+
+func main() {
+    movie := Movie{
+        Title:       "Titanic",
+        Genres:      []string{"drama", "romance"},
+        Year:        1997,
+        movieLength: 197,
+        Rating:      7.9,
+        CreatedAt:   time.Now(),
+    }
+    // Serializing the `movie` struct into a YAML object
+    // `yaml.Marshal()` returns a slice of bytes and an error:
+    movieYAML, err := yaml.Marshal(movie)
+    if err != nil {
+        log.Fatal(err)
+    }
+    // Remember to "cast" the returned slice of bytes as a 'string' to properly print it:
+    fmt.Println(string(movieYAML))
+}</code></pre><p>After running the above program, you'll get the following output:</p><pre><code class="language-yaml">title: Titanic
+genres:
+    - drama
+    - romance
+year: 1997
+rating: 7.9
+createdat: 2024-02-03T15:33:34.50642821Z # RFC3339 string format for time</code></pre><p>After the serialization process, we notice that <code class="language-shell">Rating(type=float32)</code> and <code class="language-shell">Year(type=int)</code> fields are transformed into YAML numbers, while <code class="language-shell">Title(type=string)</code> becomes YAML string and <code class="language-shell">Genres(type=[]string)</code> transforms into a YAML array of strings.</p><p>It is important to note that YAML lacks inherent support for representing time. However, the <code class="language-shell">gopkg.in/yaml.v3</code> package addresses this by converting <code class="language-shell">time.Time</code> values into string representations formatted according to the RFC3339 standard during the encoding process.<em> </em>As a result <code class="language-shell">CreatedAt(type time.Time)</code> field is transformed into a string in YAML, adhering to the RFC3339 format.</p><div class="alert alert-primary"><p>Private struct fields, denoted by lowercase initials like <code class="language-shell">movieLength</code>, are not accessible to other packages in our Go project. Since the <code class="language-shell">yaml.Marshal()</code> function is part of the <code class="language-shell">gopkg.in/yaml.v3</code> package and is used for encoding in the <code class="language-shell">main</code> package, it can't access these private struct fields during the serialization process; that's why the serialized output of the above example does NOT include the <code class="language-shell">movieLength</code> field.</p></div><h5 id="custom-serialization">Custom serialization</h5><p>In the previous section, after serializing the <code class="language-shell">Movie</code> struct all of the keys of the resulting YAML object were in lower case format. While this is valid YAML, it deviates from the <strong>snake_case</strong> convention. If <code class="language-shell">snake_case</code> is the preferred naming style, manual adjustments would be necessary during the struct-to-YAML encoding process to ensure keys follow the <code class="language-shell">snake_case</code> pattern; you can achieve this by simply using the <strong>struct tags</strong> to customize the struct-to-YAML encoding.</p><pre><code class="language-go">package main
+
+import (
+	"fmt"
+	"log"
+	"time"
+
+	"gopkg.in/yaml.v3"
+)
+
+// Observe the inclusion of yaml:"&lt;key-name&gt;" tags next to each field in the following struct. These tags are utilized to instruct the YAML package to customize the keys in the resulting YAML object.
+type Movie struct {
+	Title     string    `yaml:"title"`
+	Genres    []string  `yaml:"genres"`
+	Year      int       `yaml:"year"`
+	Runtime   int32     `yaml:"movie_length_in_minutes"`
+	Rating    float32   `yaml:"rating"`
+	CreatedAt time.Time `yaml:"created_at"`
+}
+
+func main() {
+	movie := Movie{
+		Title:     "Titanic",
+		Genres:    []string{"drama", "romance"},
+		Year:      1997,
+		Runtime:   197,
+		Rating:    7.9,
+		CreatedAt: time.Now(),
+	}
+
+	movieYAML, err := yaml.Marshal(movie)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(movieYAML))
+}</code></pre><p>Now, let's try running the program again and check the YAML output:</p><pre><code class="language-yaml">title: Titanic
+genres:
+    - drama
+    - romance
+year: 1997
+movie_length_in_minutes: 197
+rating: 7.9
+created_at: 2024-02-03T15:33:34.50642821Z</code></pre><p>As you can see, the <code class="language-shell">Runtime</code> field now gets serialized as <code class="language-shell">movie_length_in_minutes</code>, and the <code class="language-shell">CreatedAt</code> field gets serialized as <code class="language-shell">created_at</code> after applying the struct tags. Customizing or modifying key names is often necessary when sharing data across multiple services. It is Important to adopt a unified naming convention like <code class="language-shell">snake_case</code> in order to maintain consistency across various programming languages used in different services.</p><h5 id="optional-struct-tag-directives">Optional struct tag directives</h5><p>Let's explore optional tags that offer additional flexibility when encoding structs into YAML objects or decoding YAML into structs.</p><p>At times, it becomes necessary to conceal specific fields within a struct, either because they are irrelevant to users or contain sensitive information, such as a hashed password stored in the database instead of the plaintext version provided by the user. While making the field private achieves a similar outcome by restricting access, there are situations where fields need to be exported or made public for internal packages that may require access. In such cases, the <code class="language-shell">-</code> tag provides this flexibility:</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "log"
+    "time"
+
+    "gopkg.in/yaml.v3"
+)
+
+type User struct {
+    ID        int64     `yaml:"id"`
+    CreatedAt time.Time `yaml:"created_at"`
+    Name      string    `yaml:"name"`
+    Email     string    `yaml:"email"`
+    Password  string    `yaml:"-"` // Note the usage of the `-` tag
+}
+
+func main() {
+    user := User{
+        ID:        6001,
+        Name:      "John Doe",
+        Email:     "johndoe@example.com",
+        Password:  "very secret",
+        CreatedAt: time.Now(),
+    }
+
+    userYAML, err := yaml.Marshal(user)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println(string(userYAML))
+}</code></pre><p>After running the above program, the output shows that the <code class="language-shell">Password</code> field has been excluded during the encoding into YAML. Consequently, the resulting YAML object also lacks the <code class="language-shell">password</code> field. Below is the output we get from running the above program:</p><p>After running the above program, you'll get the following output:</p><pre><code class="language-yaml">id: 6001
+name: John Doe
+email: johndoe@example.com
+created_at: 2024-02-06T11:07:00.000402159Z</code></pre><p>As expected, the <code class="language-shell">Password</code> field marked with a <code class="language-shell">-</code> tag has been omitted from the YAML serialization process; this deliberate exclusion ensures that sensitive information, such as passwords, does not appear in the serialized YAML object.</p><h5 id="the-inline-directive">The inline directive</h5><p>Let's now move to the next optional directive, called <code class="language-shell">inline</code>. It is used for embedding nested struct fields directly into the parent struct. This directive is useful when you want to flatten the structure and avoid unnecessary nesting in the serialized output. It also comes in handy when the embedded struct is small or does not add semantic value to the structure to make it more concise and readable. Let's see an example:</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "log"
+
+    "gopkg.in/yaml.v3"
+)
+
+type Address struct {
+    City    string `yaml:"city"`
+    Country string `yaml:"country"`
+}
+
+// Observe how we use the 'inline' directive for the 'Address' field
+type Person1 struct {
+    Name    string `yaml:"name"`
+    Age     int    `yaml:"age"`
+    Address `yaml:",inline"`
+}
+
+// Observe that for the following struct we do not use the 'inline' directive 
+type Person2 struct {
+    Name string `yaml:"name"`
+    Age  int    `yaml:"age"`
+    Address
+}
+
+func main() {
+    addr := Address{
+        City:    "New York",
+        Country: "USA",
+    }
+
+    person1 := Person1{
+        Name:    "John Doe",
+        Age:     39,
+        Address: addr,
+    }
+
+    person2 := Person2{
+        Name:    "John Doe",
+        Age:     39,
+        Address: addr,
+    }
+
+    // encoding `person1`:
+    person1YAML, err := yaml.Marshal(person1)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println(string(person1YAML))
+
+    // encoding `person2`:
+    person2YAML, err := yaml.Marshal(person2)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println(string(person2YAML))
+}</code></pre><p>After running the above program, you'll see different serialization outputs for the <code class="language-shell">person1YAML</code> and <code class="language-shell">person2YAML</code> due to the <code class="language-shell">inline</code> directive:</p><p style="text-align: center"><picture><source media="(max-width: 480px)" srcset="https://ucarecdn.com/e6e12796-709c-4ab4-9905-5524ea59a050/-/stretch/off/-/resize/480x/-/format/webp/ 1x,https://ucarecdn.com/e6e12796-709c-4ab4-9905-5524ea59a050/-/stretch/off/-/resize/960x/-/format/webp/ 2x,https://ucarecdn.com/e6e12796-709c-4ab4-9905-5524ea59a050/-/stretch/off/-/resize/1440x/-/format/webp/ 3x" type="image/webp"/><source media="(max-width: 800px)" srcset="https://ucarecdn.com/e6e12796-709c-4ab4-9905-5524ea59a050/-/stretch/off/-/resize/800x/-/format/webp/ 1x,https://ucarecdn.com/e6e12796-709c-4ab4-9905-5524ea59a050/-/stretch/off/-/resize/1600x/-/format/webp/ 2x,https://ucarecdn.com/e6e12796-709c-4ab4-9905-5524ea59a050/-/stretch/off/-/resize/2400x/-/format/webp/ 3x" type="image/webp"/><source srcset="https://ucarecdn.com/e6e12796-709c-4ab4-9905-5524ea59a050/-/stretch/off/-/resize/1100x/-/format/webp/ 1x,https://ucarecdn.com/e6e12796-709c-4ab4-9905-5524ea59a050/-/stretch/off/-/resize/2200x/-/format/webp/ 2x,https://ucarecdn.com/e6e12796-709c-4ab4-9905-5524ea59a050/-/stretch/off/-/resize/3000x/-/format/webp/ 3x" type="image/webp"/><img alt="with and without inline directive" height="182" src="https://ucarecdn.com/e6e12796-709c-4ab4-9905-5524ea59a050/" width="452"/></picture></p><p>For <code class="language-shell">person1YAML</code>, with the <code class="language-shell">inline</code> directive applied to the <code class="language-shell">Address</code> struct, the output merges <code class="language-shell">City</code> and <code class="language-shell">Country</code> directly under <code class="language-shell">Person1</code>, eliminating the nested structure. This flattens the hierarchy, making the output more compact and readable.</p><p>In contrast, <code class="language-shell">person2YAML</code> lacks the <code class="language-shell">inline</code> directive, resulting in <code class="language-shell">City</code> and <code class="language-shell">Country</code> being serialized within a nested <code class="language-shell">Address</code> structure, maintaining the hierarchical structure.</p><h5 id="the-omitempty-directive">The omitempty directive</h5><p>Finally, we have the <code class="language-shell">omitempty</code> struct tag directive; this tag is used to omit a struct field when it contains a zero or a default value. It makes it easier to handle schema changes. If new fields are added to a struct but they are not applicable to existing data, using <code class="language-shell">omitempty</code> ensures that these fields are not present in the serialized output by default. Below is an example of how to use it:</p><pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "log"
+    "time"
+
+    "gopkg.in/yaml.v3"
+)
+
+type Movie1 struct {
+    Title     string    `yaml:"title"`
+    Genres    []string  `yaml:"genres"`
+    Year      int       `yaml:"year"`
+    Runtime   int32     `yaml:"movie_length_in_minutes"`
+    Rating    float32   `yaml:"rating"`
+    CreatedAt time.Time `yaml:"created_at,omitempty"` // Note the `omitempty` tag
+}
+
+type Movie2 struct {
+    Title     string    `yaml:"title"`
+    Genres    []string  `yaml:"genres"`
+    Year      int       `yaml:"year"`
+    Runtime   int32     `yaml:"movie_length_in_minutes"`
+    Rating    float32   `yaml:"rating"`
+    CreatedAt time.Time `yaml:"created_at"` // Note that no `omitempty` tag is used
+}
+
+func main() {
+    movie1 := Movie1{
+        Title:   "Titanic",
+        Genres:  []string{"drama", "romance"},
+        Year:    1997,
+        Runtime: 197,
+        Rating:  7.9,
+    }
+
+    movie2 := Movie2{
+        Title:   "Titanic",
+        Genres:  []string{"drama", "romance"},
+        Year:    1997,
+        Runtime: 197,
+        Rating:  7.9,
+    }
+
+    // serializing the `movie1` struct into a YAML object:
+    movie1YAML, err := yaml.Marshal(movie1)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println(string(movie1YAML))
+
+    // serializing the `movie2` struct into a YAML object:
+    movie2YAML, err := yaml.Marshal(movie2)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println(string(movie2YAML))
+}</code></pre><p>After running the above program, you'll get the following output:</p><p style="text-align: center"><picture><source media="(max-width: 480px)" srcset="https://ucarecdn.com/b9391fb9-7e94-46d1-829e-a7aef8aa358e/-/stretch/off/-/resize/480x/-/format/webp/ 1x,https://ucarecdn.com/b9391fb9-7e94-46d1-829e-a7aef8aa358e/-/stretch/off/-/resize/960x/-/format/webp/ 2x,https://ucarecdn.com/b9391fb9-7e94-46d1-829e-a7aef8aa358e/-/stretch/off/-/resize/1440x/-/format/webp/ 3x" type="image/webp"/><source media="(max-width: 800px)" srcset="https://ucarecdn.com/b9391fb9-7e94-46d1-829e-a7aef8aa358e/-/stretch/off/-/resize/800x/-/format/webp/ 1x,https://ucarecdn.com/b9391fb9-7e94-46d1-829e-a7aef8aa358e/-/stretch/off/-/resize/1600x/-/format/webp/ 2x,https://ucarecdn.com/b9391fb9-7e94-46d1-829e-a7aef8aa358e/-/stretch/off/-/resize/2400x/-/format/webp/ 3x" type="image/webp"/><source srcset="https://ucarecdn.com/b9391fb9-7e94-46d1-829e-a7aef8aa358e/-/stretch/off/-/resize/1100x/-/format/webp/ 1x,https://ucarecdn.com/b9391fb9-7e94-46d1-829e-a7aef8aa358e/-/stretch/off/-/resize/2200x/-/format/webp/ 2x,https://ucarecdn.com/b9391fb9-7e94-46d1-829e-a7aef8aa358e/-/stretch/off/-/resize/3000x/-/format/webp/ 3x" type="image/webp"/><img alt="example of using omitempty tag directive" height="229" src="https://ucarecdn.com/b9391fb9-7e94-46d1-829e-a7aef8aa358e/" width="681"/></picture></p><p>Note that when the <code class="language-shell">omitempty</code> tag is not used, the encoder includes the field with its current value, even if that value is the zero value for the respective data type. It does not create a default value for the field before encoding.</p><h5 id="deserializing-yaml-to-a-struct">Deserializing YAML to a struct</h5><p>YAML objects can be decoded into either Go structs or <code class="language-shell">map[string]interface{}</code>. When you use <code class="language-shell">map[string]interface{}</code> in Go for decoding YAML or handling dynamic data structures, you often need to use <strong>reflection</strong> to inspect and work with the actual types of the values stored in the map.</p><p>The empty <code class="language-shell">interface{}</code> type is a way to represent values of any type, and reflection provides a mechanism to inspect and manipulate these values at runtime. Using <strong>reflection</strong> comes with some trade-offs, such as decreased type safety and potentially slower performance. Decoding YAML objects into <code class="language-shell">map[string]interface{}</code> is used only in case we are uncertain of the structure or the type of values, a certain YAML object may contain. When a YAML object's structure is known beforehand, it is better to decode it into a well-defined struct rather than using <code class="language-shell">map[string]interface{}</code> in Go.</p><p>Suppose we aim to deserialize a YAML object into a struct, and we are aware of the YAML object's structure beforehand. Achieving this is straightforward by using the <code class="language-shell">yaml.Unmarshal()</code> function.</p><p>Deserializing A YAML object to a struct in Go involves the following two steps:</p><ol><li><p>Create an appropriate struct type that aligns with the structure of the YAML object you want to decode; this struct should be designed to hold the values in a way that matches the structure of the data.</p></li><li><p>Use the <code class="language-shell">yaml.Unmarshal()</code> function, which takes the YAML object as a slice of bytes and provides a reference to the variable (of the struct type) where you want to decode the YAML object.</p></li></ol><p>Let's see an example of deserializing a moderately complex YAML object:</p><pre><code class="language-go">package main
+
+import (
+	"fmt"
+	"log"
+
+	"gopkg.in/yaml.v3"
+)
+
+type EmailServer struct {
+	Host string `yaml:"host"`
+	Port int    `yaml:"port"`
+}
+
+type EmailClient struct {
+	Email    string `yaml:"email"`
+	Password string `yaml:"password"`
+	SendTo   string `yaml:"send_to"`
+}
+
+type Config struct {
+	Server EmailServer `yaml:"server"`
+	Client EmailClient `yaml:"client"`
+}
+
+func main() {
+	yamlData := `
+server:
+  host: "127.0.0.1"
+  port: 2500
+client:
+  email: "sender@example.org"
+  password: "123456"
+  send_to: "recipient@example.net"
+`
+	var config Config
+	err := yaml.Unmarshal([]byte(yamlData), &amp;config)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	fmt.Printf("Server: %+v\n", config.Server)
+	fmt.Printf("Client: %+v\n", config.Client)
+}
+
+// Output:
+// Server: {Host:127.0.0.1 Port:2500}
+// Client: {Email:sender@example.org Password:123456 SendTo:recipient@example.net}</code></pre><h5 id="conclusion">Conclusion</h5><p>In this topic, you learned the process of encoding a Go struct into YAML format and decoding a YAML object back into a struct using the <code class="language-shell">gopkg.in/yaml.v3</code> package.</p><p>You also explored some commonly used struct tag directives: <code class="language-shell">omitempty</code>, <code class="language-shell">-</code>, and <code class="language-shell">inline</code>. Throughout this exploration, you gained an understanding of the functionalities these directives provide and their respective use cases.</p><p>To sum up, decoding a YAML object into a Go struct is a straightforward process. It involves defining a struct type that mirrors the YAML object's structure and then using the <code class="language-shell">yaml.Unmarshal()</code> function for deserialization.</p><p>This was a lengthy topic, but there is still more to do! Let's test your newly acquired knowledge about working with YAML in Go with some comprehension and coding tasks!</p><p></p>
+</div>
