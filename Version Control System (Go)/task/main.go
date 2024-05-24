@@ -142,9 +142,10 @@ func selectCommand() {
 			return
 		}
 		OverrideCurrentFiles(os.Args[2])
-		line := fmt.Sprintf(" to commit %s.\n", os.Args[2])
-		fmt.Printf("Switched")
+		line := fmt.Sprintf("to commit %s.\n", os.Args[2])
+		fmt.Printf("Switched ")
 		fmt.Printf(line)
+		//fmt.Printf("Switched to commit %s.\n", os.Args[2])
 	default:
 		fmt.Printf("'%s' is not a SVCS command.", arg)
 	}
